@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: garage-yadi-app
+    env: static
+    buildCommand: |
+      echo "🚀 Starting Flutter build..."
+      flutter --version
+      flutter pub get
+      flutter config --enable-web
+      flutter build web --release --verbose
+      echo "✅ Build completed!"
+    staticPublishPath: build/web
+    envVars:
+      - key: FLUTTER_WEB
+        value: true
