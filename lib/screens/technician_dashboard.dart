@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/appointment_model.dart';
 import '../services/appointment_service.dart';
+import '../services/service_provider.dart'; // AJOUT
 
 class TechnicianDashboard extends StatefulWidget {
   final String technicianId;
@@ -17,7 +18,7 @@ class TechnicianDashboard extends StatefulWidget {
 }
 
 class _TechnicianDashboardState extends State<TechnicianDashboard> {
-  final AppointmentService _appointmentService = AppointmentService();
+  late AppointmentService _appointmentService; // MODIFIÉ: late
   List<Appointment> _myAppointments = [];
   bool _isLoading = true;
   String _selectedFilter = 'all';
@@ -25,6 +26,7 @@ class _TechnicianDashboardState extends State<TechnicianDashboard> {
   @override
   void initState() {
     super.initState();
+    _appointmentService = ServiceProvider().appointmentService; // MODIFIÉ
     _loadMyAppointments();
   }
 

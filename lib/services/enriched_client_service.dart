@@ -5,8 +5,15 @@ import '../models/appointment_model.dart';
 import '../models/vehicle_model.dart';
 
 class EnrichedClientService {
-  final AppointmentService _appointmentService = AppointmentService();
-  final ClientService _clientService = ClientService();
+  final AppointmentService _appointmentService;
+  final ClientService _clientService;
+
+  // CONSTRUCTEUR MODIFIÉ : injection des dépendances
+  EnrichedClientService({
+    required AppointmentService appointmentService,
+    required ClientService clientService,
+  })  : _appointmentService = appointmentService,
+        _clientService = clientService;
 
   // Obtenir tous les clients enrichis depuis les données réelles
   Future<List<EnrichedClient>> getAllEnrichedClients() async {

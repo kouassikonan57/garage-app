@@ -3,12 +3,14 @@ import '../models/appointment_model.dart';
 import '../models/technician_model.dart';
 import '../services/appointment_service.dart';
 import '../services/technician_service.dart';
+import '../services/service_provider.dart'; // AJOUT
 
 class BookAppointmentScreen extends StatefulWidget {
   final String clientName;
   final String clientEmail;
 
   const BookAppointmentScreen({
+    // SUPPRIMER appointmentService
     super.key,
     required this.clientName,
     required this.clientEmail,
@@ -19,7 +21,7 @@ class BookAppointmentScreen extends StatefulWidget {
 }
 
 class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
-  final AppointmentService _appointmentService = AppointmentService();
+  late final AppointmentService _appointmentService; // MODIFIER
   final TechnicianService _technicianService = TechnicianService();
   final _formKey = GlobalKey<FormState>();
 
@@ -33,13 +35,13 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   Technician? _selectedTechnician;
   bool _loadingTechnicians = false;
 
-  // AJOUT : ID du garage (vous pouvez le récupérer d'une configuration ou d'une liste)
   final String _garageId = 'garage_principal';
   final String _garageName = 'Garage Principal';
 
   @override
   void initState() {
     super.initState();
+    _appointmentService = ServiceProvider().appointmentService; // MODIFIER
     _loadAvailableTechnicians();
   }
 

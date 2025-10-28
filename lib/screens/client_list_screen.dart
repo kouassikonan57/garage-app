@@ -2,19 +2,25 @@ import 'package:flutter/material.dart';
 import '../services/appointment_service.dart';
 
 class ClientListScreen extends StatefulWidget {
-  const ClientListScreen({super.key});
+  final AppointmentService appointmentService;
+
+  const ClientListScreen({
+    super.key,
+    required this.appointmentService,
+  });
 
   @override
   _ClientListScreenState createState() => _ClientListScreenState();
 }
 
 class _ClientListScreenState extends State<ClientListScreen> {
-  final AppointmentService _appointmentService = AppointmentService();
+  late final AppointmentService _appointmentService;
   List<Map<String, dynamic>> _clients = [];
 
   @override
   void initState() {
     super.initState();
+    _appointmentService = widget.appointmentService;
     _loadClients();
   }
 

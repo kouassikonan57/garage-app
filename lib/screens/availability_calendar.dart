@@ -5,14 +5,19 @@ import '../services/simple_auth_service.dart';
 import '../models/user_model.dart';
 
 class AvailabilityCalendar extends StatefulWidget {
-  const AvailabilityCalendar({super.key});
+  final AppointmentService appointmentService;
+
+  const AvailabilityCalendar({
+    super.key,
+    required this.appointmentService,
+  });
 
   @override
   _AvailabilityCalendarState createState() => _AvailabilityCalendarState();
 }
 
 class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
-  final AppointmentService _appointmentService = AppointmentService();
+  late final AppointmentService _appointmentService;
   DateTime _selectedDate = DateTime.now();
   DateTime _focusedDay = DateTime.now();
   Map<DateTime, List<DateTime>> _availability = {};
@@ -25,6 +30,7 @@ class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
   @override
   void initState() {
     super.initState();
+    _appointmentService = widget.appointmentService;
     _checkGarageAccess();
   }
 

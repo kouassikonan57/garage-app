@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/appointment_service.dart';
+import '../services/service_provider.dart';
 import '../services/simple_auth_service.dart';
 import '../models/user_model.dart';
 
@@ -18,7 +18,8 @@ class GarageDashboard extends StatefulWidget {
 }
 
 class _GarageDashboardState extends State<GarageDashboard> {
-  final AppointmentService _appointmentService = AppointmentService();
+  // AJOUT: Import manquant pour AppointmentService
+  late final dynamic _appointmentService;
   Map<String, int> _stats = {};
   bool _checkingAccess = true;
   bool _isGarage = false;
@@ -27,6 +28,8 @@ class _GarageDashboardState extends State<GarageDashboard> {
   @override
   void initState() {
     super.initState();
+    // CORRECTION: Initialiser via ServiceProvider
+    _appointmentService = ServiceProvider().appointmentService;
     _checkGarageAccess();
   }
 

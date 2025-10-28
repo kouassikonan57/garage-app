@@ -8,12 +8,31 @@ class LoyaltyService {
   static final List<LoyaltyProgram> _loyaltyPrograms = [];
   static final List<LoyaltyTransaction> _transactions = [];
 
-  // Services pour accéder aux données réelles
-  final AppointmentService _appointmentService = AppointmentService();
-  final ClientService _clientService = ClientService();
+  // Services pour accéder aux données réelles - MODIFIÉ : rendus optionnels
+  AppointmentService? _appointmentService;
+  final ClientService _clientService;
+
+  // CONSTRUCTEUR MODIFIÉ : clientService requis, appointmentService optionnel
+  LoyaltyService({
+    required ClientService clientService,
+    AppointmentService? appointmentService,
+  })  : _appointmentService = appointmentService,
+        _clientService = clientService;
+
+  // Méthode pour mettre à jour l'AppointmentService après l'initialisation
+  void updateAppointmentService(AppointmentService appointmentService) {
+    _appointmentService = appointmentService;
+    print('✅ LoyaltyService: AppointmentService mis à jour');
+  }
 
   // Attribuer automatiquement les points après un RDV
   Future<void> awardPointsForAppointment(Appointment appointment) async {
+    // AJOUT: Vérifier si _appointmentService est disponible
+    if (_appointmentService == null) {
+      print('⚠️ AppointmentService non disponible pour attribution des points');
+      return;
+    }
+
     await Future.delayed(const Duration(milliseconds: 500));
 
     final points = _calculatePointsForService(appointment.service);
@@ -166,7 +185,7 @@ class LoyaltyService {
     return 'Nouveau';
   }
 
-  // Récupérer le programme d'un client - CORRIGÉ
+  // Récupérer le programme d'un client
   Future<LoyaltyProgram?> _getLoyaltyProgram(String clientEmail) async {
     await Future.delayed(const Duration(milliseconds: 200));
     try {
@@ -186,7 +205,7 @@ class LoyaltyService {
     return _loyaltyPrograms;
   }
 
-  // Obtenir le programme d'un client spécifique - CORRIGÉ
+  // Obtenir le programme d'un client spécifique
   Future<LoyaltyProgram?> getClientLoyaltyProgram(String clientEmail) async {
     await Future.delayed(const Duration(milliseconds: 500));
     try {
@@ -359,9 +378,15 @@ class LoyaltyService {
 
   // NOUVELLE MÉTHODE : Synchroniser avec les clients réels
   Future<void> _syncWithRealClients() async {
+    // AJOUT: Vérifier si _appointmentService est disponible
+    if (_appointmentService == null) {
+      print('⚠️ AppointmentService non disponible pour synchronisation');
+      return;
+    }
+
     try {
       // Récupérer les rendez-vous réels
-      final appointments = await _appointmentService.getAllAppointments();
+      final appointments = await _appointmentService!.getAllAppointments();
 
       // Récupérer les clients depuis ClientService
       final clientsFromService = await _clientService.getAllClients();

@@ -16,6 +16,7 @@ import 'client_profile_screen.dart';
 import '../services/firebase_client_service.dart';
 import '../services/simple_auth_service.dart';
 import '../services/appointment_service.dart';
+import '../services/service_provider.dart';
 import 'technicians_management.dart';
 // NOUVEAUX IMPORTS
 import 'appointment_tracker.dart';
@@ -35,6 +36,11 @@ class HomeScreen extends StatelessWidget {
     required this.userName,
     required this.userEmail,
   });
+
+  // CORRECTION: Méthode pour obtenir AppointmentService
+  AppointmentService _getAppointmentService() {
+    return ServiceProvider().appointmentService;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -172,8 +178,9 @@ class HomeScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            ClientHistoryScreen(clientEmail: userEmail),
+                        builder: (context) => ClientHistoryScreen(
+                          clientEmail: userEmail,
+                        ),
                       ),
                     );
                   },
@@ -187,8 +194,9 @@ class HomeScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            ClientProfileScreen(clientEmail: userEmail),
+                        builder: (context) => ClientProfileScreen(
+                          clientEmail: userEmail,
+                        ),
                       ),
                     );
                   },
@@ -215,7 +223,7 @@ class HomeScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => GarageDashboard()),
+                          builder: (context) => const GarageDashboard()),
                     );
                   },
                 ),
@@ -228,7 +236,8 @@ class HomeScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => GarageManagementScreen()),
+                        builder: (context) => const GarageManagementScreen(),
+                      ),
                     );
                   },
                 ),
@@ -241,7 +250,7 @@ class HomeScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => EnrichedClientsScreen()),
+                          builder: (context) => const EnrichedClientsScreen()),
                     );
                   },
                 ),
@@ -256,7 +265,8 @@ class HomeScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => AdvancedCalendar()),
+                        builder: (context) => const AdvancedCalendar(),
+                      ),
                     );
                   },
                 ),
@@ -302,7 +312,9 @@ class HomeScreen extends StatelessWidget {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => ReportsScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const ReportsScreen(),
+                      ),
                     );
                   },
                 ),
@@ -315,7 +327,7 @@ class HomeScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => SuppliersManagement()),
+                          builder: (context) => const SuppliersManagement()),
                     );
                   },
                 ),
@@ -328,7 +340,7 @@ class HomeScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => InventoryManagement()),
+                          builder: (context) => const InventoryManagement()),
                     );
                   },
                 ),
@@ -341,7 +353,7 @@ class HomeScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => LoyaltyProgramScreen()),
+                          builder: (context) => const LoyaltyProgramScreen()),
                     );
                   },
                 ),
@@ -372,7 +384,8 @@ class HomeScreen extends StatelessWidget {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => SettingsScreen()),
+                    MaterialPageRoute(
+                        builder: (context) => const SettingsScreen()),
                   );
                 },
               ),
@@ -488,7 +501,7 @@ class HomeScreen extends StatelessWidget {
   void _navigateToAppointmentTracker(BuildContext context) async {
     try {
       // Récupérer les vrais rendez-vous du client depuis Firestore
-      final appointmentService = AppointmentService();
+      final appointmentService = _getAppointmentService();
       final appointments =
           await appointmentService.getClientAppointments(userEmail);
 
@@ -678,7 +691,7 @@ class HomeScreen extends StatelessWidget {
   void _navigateToAppointmentPhotos(BuildContext context) async {
     try {
       // Récupérer les vrais rendez-vous du client
-      final appointmentService = AppointmentService();
+      final appointmentService = _getAppointmentService();
       final appointments =
           await appointmentService.getClientAppointments(userEmail);
 
@@ -724,7 +737,7 @@ class HomeScreen extends StatelessWidget {
   void _navigateToInAppChat(BuildContext context) async {
     try {
       // Récupérer les vrais rendez-vous du client
-      final appointmentService = AppointmentService();
+      final appointmentService = _getAppointmentService();
       final appointments =
           await appointmentService.getClientAppointments(userEmail);
 

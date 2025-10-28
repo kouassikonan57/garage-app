@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/loyalty_model.dart';
 import '../services/loyalty_service.dart';
 import '../services/simple_auth_service.dart';
+import '../services/service_provider.dart'; // AJOUT
 import '../models/user_model.dart';
 
 class LoyaltyProgramScreen extends StatefulWidget {
@@ -16,7 +17,7 @@ class _LoyaltyProgramScreenState extends State<LoyaltyProgramScreen> {
   List<LoyaltyProgram> _loyaltyPrograms = [];
   List<LoyaltyReward> _rewards = [];
   final TextEditingController _searchController = TextEditingController();
-  final LoyaltyService _loyaltyService = LoyaltyService();
+  late LoyaltyService _loyaltyService; // MODIFIÉ: late
   bool _checkingAccess = true;
   bool _isGarage = false;
   bool _isLoading = true;
@@ -31,6 +32,7 @@ class _LoyaltyProgramScreenState extends State<LoyaltyProgramScreen> {
   @override
   void initState() {
     super.initState();
+    _loyaltyService = ServiceProvider().loyaltyService; // MODIFIÉ
     _checkGarageAccess();
   }
 

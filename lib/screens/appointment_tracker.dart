@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../models/appointment_model.dart';
 import '../services/appointment_service.dart';
+import '../services/service_provider.dart'; // AJOUT
 import 'in_app_chat.dart';
 
 class AppointmentTracker extends StatefulWidget {
@@ -9,6 +10,7 @@ class AppointmentTracker extends StatefulWidget {
   final String clientEmail;
 
   const AppointmentTracker({
+    // SUPPRIMER appointmentService
     super.key,
     required this.appointmentId,
     required this.clientEmail,
@@ -21,11 +23,18 @@ class AppointmentTracker extends StatefulWidget {
 class _AppointmentTrackerState extends State<AppointmentTracker> {
   int _currentStep = 0;
   Timer? _updateTimer;
-  final AppointmentService _appointmentService = AppointmentService();
+  late final AppointmentService _appointmentService; // MODIFIER
   Appointment? _currentAppointment;
   bool _isAppointmentValid = false;
   bool _isLoading = true;
   bool _appointmentNotFound = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _appointmentService = ServiceProvider().appointmentService; // MODIFIER
+    _initializeAppointment();
+  }
 
   List<AppointmentStep> get _steps {
     if (_currentAppointment?.status == 'rejected') {
@@ -77,12 +86,6 @@ class _AppointmentTrackerState extends State<AppointmentTracker> {
       AppointmentStep('Terminé', 'Véhicule prêt à être récupéré',
           Icons.done_all, Colors.green),
     ];
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeAppointment();
   }
 
   void _initializeAppointment() async {

@@ -2,17 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/appointment_service.dart';
 import '../services/simple_auth_service.dart';
+import '../services/service_provider.dart'; // AJOUT
 import '../models/user_model.dart';
 
 class ReportsScreen extends StatefulWidget {
-  const ReportsScreen({super.key});
+  const ReportsScreen({super.key}); // SUPPRIMER le paramètre requis
 
   @override
   _ReportsScreenState createState() => _ReportsScreenState();
 }
 
 class _ReportsScreenState extends State<ReportsScreen> {
-  final AppointmentService _appointmentService = AppointmentService();
+  late AppointmentService _appointmentService; // MODIFIÉ: late
   Map<String, int> _stats = {};
   Map<String, int> _serviceStats = {};
   List<Map<String, dynamic>> _recentAppointments = [];
@@ -35,6 +36,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   void initState() {
     super.initState();
+    _appointmentService = ServiceProvider().appointmentService; // MODIFIÉ
     _checkGarageAccess();
   }
 
@@ -151,7 +153,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       case 'today':
         final today = DateTime(now.year, now.month, now.day);
         return appointments.where((appointment) {
-          final appointmentDate = DateTime.parse(appointment.date);
+          final appointmentDate = appointment.dateTime;
           return appointmentDate
               .isAfter(today.subtract(const Duration(seconds: 1)));
         }).toList();
@@ -159,21 +161,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
       case 'week':
         final weekAgo = now.subtract(const Duration(days: 7));
         return appointments.where((appointment) {
-          final appointmentDate = DateTime.parse(appointment.date);
+          final appointmentDate = appointment.dateTime;
           return appointmentDate.isAfter(weekAgo);
         }).toList();
 
       case 'month':
         final monthAgo = DateTime(now.year, now.month - 1, now.day);
         return appointments.where((appointment) {
-          final appointmentDate = DateTime.parse(appointment.date);
+          final appointmentDate = appointment.dateTime;
           return appointmentDate.isAfter(monthAgo);
         }).toList();
 
       case 'year':
         final yearAgo = DateTime(now.year - 1, now.month, now.day);
         return appointments.where((appointment) {
-          final appointmentDate = DateTime.parse(appointment.date);
+          final appointmentDate = appointment.dateTime;
           return appointmentDate.isAfter(yearAgo);
         }).toList();
 
@@ -190,8 +192,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return {
       'total': appointments.length,
       'upcoming': appointments
-          .where((a) =>
-              a.status != 'cancelled' && DateTime.parse(a.date).isAfter(now))
+          .where((a) => a.status != 'cancelled' && a.dateTime.isAfter(now))
           .length,
       'pending': appointments.where((a) => a.status == 'pending').length,
       'confirmed': appointments.where((a) => a.status == 'confirmed').length,

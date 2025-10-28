@@ -1,24 +1,30 @@
 import 'package:flutter/material.dart';
 import '../services/appointment_service.dart';
 import '../models/appointment_model.dart';
+import '../services/service_provider.dart'; // AJOUT
 
 class ClientHistoryScreen extends StatefulWidget {
   final String clientEmail;
 
-  const ClientHistoryScreen({super.key, required this.clientEmail});
+  const ClientHistoryScreen({
+    // SUPPRIMER appointmentService
+    super.key,
+    required this.clientEmail,
+  });
 
   @override
   _ClientHistoryScreenState createState() => _ClientHistoryScreenState();
 }
 
 class _ClientHistoryScreenState extends State<ClientHistoryScreen> {
-  final AppointmentService _appointmentService = AppointmentService();
+  late final AppointmentService _appointmentService; // MODIFIER
   List<Appointment> _pastAppointments = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _appointmentService = ServiceProvider().appointmentService; // MODIFIER
     _loadHistory();
   }
 

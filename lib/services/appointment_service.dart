@@ -6,7 +6,17 @@ import 'loyalty_service.dart';
 class AppointmentService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final NotificationService _notificationService = NotificationService();
-  final LoyaltyService _loyaltyService = LoyaltyService();
+  LoyaltyService? _loyaltyService; // Rendre optionnel
+
+  // CONSTRUCTEUR MODIFIÉ - rendre loyaltyService optionnel
+  AppointmentService({LoyaltyService? loyaltyService})
+      : _loyaltyService = loyaltyService;
+
+  // Méthode pour mettre à jour après l'initialisation
+  void updateLoyaltyService(LoyaltyService loyaltyService) {
+    _loyaltyService = loyaltyService;
+    print('✅ AppointmentService: LoyaltyService mis à jour');
+  }
 
   // Mettre à jour un rendez-vous complet
   Future<void> updateAppointment(Appointment updatedAppointment) async {
@@ -213,10 +223,11 @@ class AppointmentService {
           status,
         );
 
-        if (status == 'completed') {
+        // AJOUT: Vérifier si _loyaltyService est disponible
+        if (status == 'completed' && _loyaltyService != null) {
           print(
               '🎯 DÉCLENCHEMENT FIDÉLITÉ AUTO pour: ${appointment.clientName}');
-          await _loyaltyService.awardPointsForAppointment(appointment);
+          await _loyaltyService!.awardPointsForAppointment(appointment);
         }
 
         if (status == 'confirmed') {

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/appointment_service.dart';
 import '../services/technician_service.dart';
 import '../services/simple_auth_service.dart';
+import '../services/service_provider.dart'; // AJOUT
 import '../models/appointment_model.dart';
 import '../models/technician_model.dart';
 import '../models/user_model.dart';
@@ -15,7 +16,7 @@ class GarageManagementScreen extends StatefulWidget {
 }
 
 class _GarageManagementScreenState extends State<GarageManagementScreen> {
-  final AppointmentService _appointmentService = AppointmentService();
+  late AppointmentService _appointmentService; // MODIFIÉ: late
   final TechnicianService _technicianService = TechnicianService();
   List<Appointment> _appointments = [];
   List<Technician> _technicians = [];
@@ -27,6 +28,7 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
   @override
   void initState() {
     super.initState();
+    _appointmentService = ServiceProvider().appointmentService; // MODIFIÉ
     _checkGarageAccess();
   }
 

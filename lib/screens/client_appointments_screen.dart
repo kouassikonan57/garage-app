@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import '../services/appointment_service.dart';
 import '../models/appointment_model.dart';
+import '../services/service_provider.dart'; // AJOUT
 
 class ClientAppointmentsScreen extends StatefulWidget {
   final String clientEmail;
 
-  const ClientAppointmentsScreen({super.key, required this.clientEmail});
+  const ClientAppointmentsScreen({
+    // SUPPRIMER appointmentService
+    super.key,
+    required this.clientEmail,
+  });
 
   @override
   _ClientAppointmentsScreenState createState() =>
@@ -13,13 +18,14 @@ class ClientAppointmentsScreen extends StatefulWidget {
 }
 
 class _ClientAppointmentsScreenState extends State<ClientAppointmentsScreen> {
-  final AppointmentService _appointmentService = AppointmentService();
+  late final AppointmentService _appointmentService; // MODIFIER
   List<Appointment> _appointments = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _appointmentService = ServiceProvider().appointmentService; // MODIFIER
     _loadAppointments();
   }
 

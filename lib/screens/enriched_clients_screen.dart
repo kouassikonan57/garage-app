@@ -3,9 +3,9 @@ import 'package:provider/provider.dart';
 import '../models/enriched_client_model.dart';
 import '../services/enriched_client_service.dart';
 import '../services/simple_auth_service.dart';
+import '../services/service_provider.dart';
 import '../models/user_model.dart';
-// import 'dart:convert' show utf8;
-import 'dart:math'; // Pour Random
+import 'dart:math';
 import 'package:share_plus/share_plus.dart';
 import 'package:clipboard/clipboard.dart';
 
@@ -17,17 +17,15 @@ class EnrichedClientsScreen extends StatefulWidget {
 }
 
 class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
-  final EnrichedClientService _clientService = EnrichedClientService();
+  late final EnrichedClientService _clientService;
   List<EnrichedClient> _clients = [];
   List<EnrichedClient> _filteredClients = [];
   bool _isLoading = true;
   bool _checkingAccess = true;
   bool _isGarage = false;
   String _searchQuery = '';
-  String _selectedFilter =
-      'all'; // 'all', 'new', 'regular', 'loyal', 'with_vehicles'
+  String _selectedFilter = 'all';
 
-  // Contrôleurs pour le formulaire d'ajout
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
@@ -37,6 +35,7 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
   @override
   void initState() {
     super.initState();
+    _clientService = ServiceProvider().enrichedClientService;
     _checkGarageAccess();
   }
 
@@ -102,8 +101,6 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
     });
 
     final clients = await _clientService.getAllEnrichedClients();
-
-    // Trier les clients par nombre de RDV (les plus fidèles en premier)
     clients.sort((a, b) => b.totalAppointments.compareTo(a.totalAppointments));
 
     setState(() {
@@ -111,6 +108,29 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
       _filteredClients = clients;
       _isLoading = false;
     });
+  }
+
+  Map<String, dynamic> getClientStats(List<EnrichedClient> clients) {
+    final totalClients = clients.length;
+    final loyalClients =
+        clients.where((client) => client.activityLevel == 'Fidèle').length;
+    final regularClients =
+        clients.where((client) => client.activityLevel == 'Régulier').length;
+    final newClients =
+        clients.where((client) => client.activityLevel == 'Nouveau').length;
+    final totalVehicles =
+        clients.fold(0, (sum, client) => sum + client.vehicles.length);
+    final totalAppointments =
+        clients.fold(0, (sum, client) => sum + client.totalAppointments);
+
+    return {
+      'totalClients': totalClients,
+      'loyalClients': loyalClients,
+      'regularClients': regularClients,
+      'newClients': newClients,
+      'totalVehicles': totalVehicles,
+      'totalAppointments': totalAppointments,
+    };
   }
 
   void _searchClients(String query) {
@@ -123,7 +143,6 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
   void _applyFilters() {
     List<EnrichedClient> filtered = _clients;
 
-    // Appliquer la recherche
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((client) {
         return client.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
@@ -142,7 +161,6 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
       }).toList();
     }
 
-    // Appliquer le filtre sélectionné
     switch (_selectedFilter) {
       case 'loyal':
         filtered = filtered
@@ -165,7 +183,6 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
         break;
       case 'all':
       default:
-        // Pas de filtre supplémentaire
         break;
     }
 
@@ -174,237 +191,7 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (_checkingAccess) {
-      return const Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 20),
-              Text('Vérification des accès...'),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (!_isGarage) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Accès Refusé'),
-          backgroundColor: Colors.red,
-        ),
-        body: const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.block, size: 64, color: Colors.red),
-              SizedBox(height: 20),
-              Text(
-                'Accès réservé aux garages',
-                style: TextStyle(fontSize: 18, color: Colors.red),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    final stats = _clientService.getClientStats(_clients);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Gestion des Clients'),
-        backgroundColor: Colors.purple,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadClients,
-            tooltip: 'Actualiser',
-          ),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'export') {
-                _exportClientsData();
-              } else if (value == 'stats') {
-                _showDetailedStats();
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'stats',
-                child: Row(
-                  children: [
-                    Icon(Icons.analytics, color: Colors.blue),
-                    SizedBox(width: 8),
-                    Text('Statistiques détaillées'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'export',
-                child: Row(
-                  children: [
-                    Icon(Icons.download, color: Colors.green),
-                    SizedBox(width: 8),
-                    Text('Exporter données'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Barre de recherche
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Rechercher un client, véhicule, plaque...',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _searchClients('');
-                            },
-                          )
-                        : null,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                  ),
-                  onChanged: _searchClients,
-                ),
-                const SizedBox(height: 12),
-
-                // Filtres rapides
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _buildFilterChip('Tous', 'all'),
-                      _buildFilterChip('Fidèles', 'loyal'),
-                      _buildFilterChip('Réguliers', 'regular'),
-                      _buildFilterChip('Nouveaux', 'new'),
-                      _buildFilterChip('Avec Véhicules', 'with_vehicles'),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Statistiques
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.purple[50],
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.purple.withOpacity(0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatCard(stats['totalClients'].toString(), 'Clients',
-                    Icons.people, Colors.purple),
-                _buildStatCard(stats['loyalClients'].toString(), 'Fidèles',
-                    Icons.loyalty, Colors.amber),
-                _buildStatCard(stats['totalVehicles'].toString(), 'Véhicules',
-                    Icons.directions_car, Colors.blue),
-                _buildStatCard(stats['totalAppointments'].toString(), 'RDV',
-                    Icons.calendar_today, Colors.green),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // En-tête résultats
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '${_filteredClients.length} client(s) trouvé(s)',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey,
-                  ),
-                ),
-                if (_searchQuery.isNotEmpty || _selectedFilter != 'all')
-                  TextButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _searchQuery = '';
-                        _selectedFilter = 'all';
-                      });
-                      _applyFilters();
-                    },
-                    icon: const Icon(Icons.clear_all, size: 16),
-                    label: const Text('Réinitialiser'),
-                  ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          // Liste des clients
-          Expanded(
-            child: _isLoading
-                ? const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 16),
-                        Text('Chargement des clients...'),
-                      ],
-                    ),
-                  )
-                : _filteredClients.isEmpty
-                    ? _buildEmptyState()
-                    : ListView.builder(
-                        itemCount: _filteredClients.length,
-                        itemBuilder: (context, index) {
-                          final client = _filteredClients[index];
-                          return _buildClientCard(client);
-                        },
-                      ),
-          ),
-        ],
-      ),
-
-      // Bouton d'action flottant pour créer un nouveau client
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddClientForm,
-        backgroundColor: Colors.purple,
-        foregroundColor: Colors.white,
-        tooltip: 'Ajouter un nouveau client',
-        child: const Icon(Icons.person_add),
-      ),
-    );
-  }
-
+  // AJOUT: Méthode _buildFilterChip manquante
   Widget _buildFilterChip(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
@@ -427,6 +214,7 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
     );
   }
 
+  // AJOUT: Méthode _buildStatCard manquante
   Widget _buildStatCard(
       String value, String label, IconData icon, Color color) {
     return Column(
@@ -456,6 +244,7 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
     );
   }
 
+  // AJOUT: Méthode _buildEmptyState manquante
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -506,6 +295,7 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
     );
   }
 
+  // AJOUT: Méthode _buildClientCard manquante
   Widget _buildClientCard(EnrichedClient client) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -518,7 +308,6 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
           padding: const EdgeInsets.all(16.0),
           child: Row(
             children: [
-              // Avatar
               CircleAvatar(
                 backgroundColor: client.activityColor.withOpacity(0.2),
                 radius: 20,
@@ -532,8 +321,6 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
                 ),
               ),
               const SizedBox(width: 12),
-
-              // Informations principales
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -573,8 +360,6 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
                   ],
                 ),
               ),
-
-              // Badge d'activité
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -597,6 +382,7 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
     );
   }
 
+  // AJOUT: Méthode _showClientDetails manquante
   void _showClientDetails(EnrichedClient client) {
     showDialog(
       context: context,
@@ -711,6 +497,7 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
     );
   }
 
+  // AJOUT: Méthode _buildDetailRow manquante
   Widget _buildDetailRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
@@ -731,10 +518,12 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
     );
   }
 
+  // AJOUT: Méthode _formatDate manquante
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
   }
 
+  // AJOUT: Méthode _contactClient manquante
   void _contactClient(EnrichedClient client) {
     showDialog(
       context: context,
@@ -790,7 +579,7 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
     );
   }
 
-  // FONCTIONNALITÉ D'AJOUT DE CLIENT
+  // AJOUT: Méthode _showAddClientForm manquante
   void _showAddClientForm() {
     showDialog(
       context: context,
@@ -877,12 +666,14 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
     );
   }
 
+  // AJOUT: Méthode _validateForm manquante
   bool _validateForm() {
     return _nameController.text.trim().isNotEmpty &&
         _emailController.text.trim().isNotEmpty &&
         _phoneController.text.trim().isNotEmpty;
   }
 
+  // AJOUT: Méthode _clearForm manquante
   void _clearForm() {
     _nameController.clear();
     _emailController.clear();
@@ -891,6 +682,7 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
     _notesController.clear();
   }
 
+  // AJOUT: Méthode _addNewClient manquante
   void _addNewClient() async {
     try {
       final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
@@ -898,7 +690,7 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
 
       final newClient = EnrichedClient(
         id: timestamp,
-        uid: timestamp, // Temporaire
+        uid: timestamp,
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
         phone: _phoneController.text.trim(),
@@ -914,7 +706,6 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
         lastVisit: null,
       );
 
-      // 🔥 CRÉATION DU COMPTE UTILISATEUR FIREBASE
       final authService =
           Provider.of<SimpleAuthService>(context, listen: false);
       final result = await authService.createClientAccount(
@@ -926,17 +717,11 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
 
       if (result['success'] == true) {
         final appUser = result['user'] as AppUser;
-
-        // Mettre à jour le client avec le vrai UID Firebase
         final clientWithUid = newClient.copyWith(
           uid: appUser.uid,
           id: appUser.uid,
         );
 
-        // Ici vous devriez appeler votre service pour sauvegarder le client enrichi
-        // await _clientService.addClient(clientWithUid);
-
-        // Pour l'instant, on l'ajoute localement
         setState(() {
           _clients.insert(0, clientWithUid);
           _applyFilters();
@@ -944,8 +729,6 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
 
         _clearForm();
         Navigator.pop(context);
-
-        // 🔥 AFFICHER LES IDENTIFIANTS
         _showClientInvitation(clientWithUid, temporaryPassword);
       } else {
         throw Exception(result['error']);
@@ -960,6 +743,7 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
     }
   }
 
+  // AJOUT: Méthode _generateTemporaryPassword manquante
   String _generateTemporaryPassword() {
     final random = Random.secure();
     const chars =
@@ -968,6 +752,7 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
         10, (_) => chars.codeUnitAt(random.nextInt(chars.length))));
   }
 
+  // AJOUT: Méthode _showClientInvitation manquante
   void _showClientInvitation(EnrichedClient client, String temporaryPassword) {
     showDialog(
       context: context,
@@ -1065,10 +850,9 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
     );
   }
 
+  // AJOUT: Méthode _copyCredentialsToClipboard manquante
   void _copyCredentialsToClipboard(String email, String password) {
     final credentials = 'Email: $email\nMot de passe temporaire: $password';
-
-    // Utilisation du package clipboard pour une vraie copie
     FlutterClipboard.copy(credentials).then((value) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -1079,7 +863,7 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
     });
   }
 
-  // FONCTIONNALITÉ D'EXPORT DES DONNÉES AVEC SHARE_PLUS
+  // AJOUT: Méthode _exportClientsData manquante
   void _exportClientsData() async {
     try {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1095,14 +879,10 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
         ),
       );
 
-      // Créer le contenu CSV
       final StringBuffer csvContent = StringBuffer();
-
-      // En-tête CSV
       csvContent.writeln(
           'Nom,Email,Téléphone,Adresse,Date d\'inscription,Nombre de RDV,Niveau d\'activité,Nombre de véhicules,Dernière visite,Notes');
 
-      // Données des clients
       for (final client in _clients) {
         final escapedNotes = (client.notes ?? '')
             .replaceAll('"', '""')
@@ -1118,7 +898,6 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
             '"${client.name}","${client.email}","${client.phone}","$escapedAddress","${client.formattedRegistrationDate}",${client.totalAppointments},"${client.activityLevel}",${client.vehicles.length},"${client.lastVisit != null ? _formatDate(client.lastVisit!) : 'Jamais'}","$escapedNotes"');
       }
 
-      // Utilisation de share_plus pour partager/exporter
       await Share.share(
         csvContent.toString(),
         subject: 'Export clients ${DateTime.now().toString()}',
@@ -1135,8 +914,9 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
     }
   }
 
+  // AJOUT: Méthode _showDetailedStats manquante
   void _showDetailedStats() {
-    final stats = _clientService.getClientStats(_clients);
+    final stats = getClientStats(_clients);
 
     showDialog(
       context: context,
@@ -1159,14 +939,6 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
                   'Total Véhicules', stats['totalVehicles'].toString()),
               _buildStatDetail(
                   'RDV Total', stats['totalAppointments'].toString()),
-              _buildStatDetail(
-                  'Moyenne RDV/Client', stats['averageAppointments']),
-              _buildStatDetail('Clients Multi-Véhicules',
-                  stats['clientsWithMultipleVehicles'].toString()),
-              _buildStatDetail(
-                  'Clients Récents', stats['recentClients'].toString()),
-              _buildStatDetail('Clients Sans RDV',
-                  stats['clientsWithNoAppointments'].toString()),
             ],
           ),
         ),
@@ -1185,6 +957,7 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
     );
   }
 
+  // AJOUT: Méthode _buildStatDetail manquante
   Widget _buildStatDetail(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -1194,6 +967,224 @@ class _EnrichedClientsScreenState extends State<EnrichedClientsScreen> {
           Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
           Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_checkingAccess) {
+      return const Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 20),
+              Text('Vérification des accès...'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (!_isGarage) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Accès Refusé'),
+          backgroundColor: Colors.red,
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.block, size: 64, color: Colors.red),
+              SizedBox(height: 20),
+              Text(
+                'Accès réservé aux garages',
+                style: TextStyle(fontSize: 18, color: Colors.red),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final stats = getClientStats(_clients);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Gestion des Clients'),
+        backgroundColor: Colors.purple,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadClients,
+            tooltip: 'Actualiser',
+          ),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'export') {
+                _exportClientsData();
+              } else if (value == 'stats') {
+                _showDetailedStats();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'stats',
+                child: Row(
+                  children: [
+                    Icon(Icons.analytics, color: Colors.blue),
+                    SizedBox(width: 8),
+                    Text('Statistiques détaillées'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'export',
+                child: Row(
+                  children: [
+                    Icon(Icons.download, color: Colors.green),
+                    SizedBox(width: 8),
+                    Text('Exporter données'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Rechercher un client, véhicule, plaque...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchClients('');
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                  ),
+                  onChanged: _searchClients,
+                ),
+                const SizedBox(height: 12),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildFilterChip('Tous', 'all'),
+                      _buildFilterChip('Fidèles', 'loyal'),
+                      _buildFilterChip('Réguliers', 'regular'),
+                      _buildFilterChip('Nouveaux', 'new'),
+                      _buildFilterChip('Avec Véhicules', 'with_vehicles'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.purple[50],
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.purple.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatCard(stats['totalClients'].toString(), 'Clients',
+                    Icons.people, Colors.purple),
+                _buildStatCard(stats['loyalClients'].toString(), 'Fidèles',
+                    Icons.loyalty, Colors.amber),
+                _buildStatCard(stats['totalVehicles'].toString(), 'Véhicules',
+                    Icons.directions_car, Colors.blue),
+                _buildStatCard(stats['totalAppointments'].toString(), 'RDV',
+                    Icons.calendar_today, Colors.green),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${_filteredClients.length} client(s) trouvé(s)',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey,
+                  ),
+                ),
+                if (_searchQuery.isNotEmpty || _selectedFilter != 'all')
+                  TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _searchQuery = '';
+                        _selectedFilter = 'all';
+                      });
+                      _applyFilters();
+                    },
+                    icon: const Icon(Icons.clear_all, size: 16),
+                    label: const Text('Réinitialiser'),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: _isLoading
+                ? const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('Chargement des clients...'),
+                      ],
+                    ),
+                  )
+                : _filteredClients.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.builder(
+                        itemCount: _filteredClients.length,
+                        itemBuilder: (context, index) {
+                          final client = _filteredClients[index];
+                          return _buildClientCard(client);
+                        },
+                      ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddClientForm,
+        backgroundColor: Colors.purple,
+        foregroundColor: Colors.white,
+        tooltip: 'Ajouter un nouveau client',
+        child: const Icon(Icons.person_add),
       ),
     );
   }
