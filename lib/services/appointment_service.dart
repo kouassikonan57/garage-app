@@ -5,14 +5,16 @@ import 'loyalty_service.dart';
 
 class AppointmentService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final NotificationService _notificationService = NotificationService();
-  LoyaltyService? _loyaltyService; // Rendre optionnel
+  final NotificationService _notificationService;
+  LoyaltyService? _loyaltyService;
 
-  // CONSTRUCTEUR MODIFIÉ - rendre loyaltyService optionnel
-  AppointmentService({LoyaltyService? loyaltyService})
-      : _loyaltyService = loyaltyService;
+  // MODIFIER le constructeur pour injecter NotificationService
+  AppointmentService({
+    LoyaltyService? loyaltyService,
+    required NotificationService notificationService,
+  })  : _loyaltyService = loyaltyService,
+        _notificationService = notificationService;
 
-  // Méthode pour mettre à jour après l'initialisation
   void updateLoyaltyService(LoyaltyService loyaltyService) {
     _loyaltyService = loyaltyService;
     print('✅ AppointmentService: LoyaltyService mis à jour');
@@ -34,6 +36,166 @@ class AppointmentService {
     } catch (e) {
       print('❌ Erreur mise à jour RDV: $e');
       throw e;
+    }
+  }
+
+  // NOUVELLE MÉTHODE : Vérifier si un changement de statut est autorisé
+  bool isStatusChangeAllowed(String currentStatus, String newStatus) {
+    // Définir l'ordre du workflow (unidirectionnel)
+    final workflowOrder = [
+      'pending',
+      'confirmed',
+      'in_progress',
+      'diagnostic',
+      'repair',
+      'quality_check',
+      'completed'
+    ];
+
+    final currentIndex = workflowOrder.indexOf(currentStatus);
+    final newIndex = workflowOrder.indexOf(newStatus);
+
+    // Autoriser seulement la progression vers l'avant
+    if (currentIndex != -1 && newIndex != -1) {
+      return newIndex > currentIndex;
+    }
+
+    // Autoriser les statuts spéciaux (annulé, rejeté) à tout moment
+    return newStatus == 'cancelled' || newStatus == 'rejected';
+  }
+
+  // METTRE À JOUR : Mettre à jour le statut avec validation
+  Future<void> updateAppointmentStatus(
+      String appointmentId, String newStatus) async {
+    try {
+      // Récupérer le RDV actuel pour vérifier le statut
+      final currentAppointment = await getAppointment(appointmentId);
+      if (currentAppointment == null) {
+        throw Exception('Rendez-vous non trouvé');
+      }
+
+      // Valider le changement de statut
+      if (!isStatusChangeAllowed(currentAppointment.status, newStatus)) {
+        throw Exception(
+            'Changement de statut non autorisé: ${currentAppointment.status} -> $newStatus');
+      }
+
+      final updates = {
+        'status': newStatus,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      // Ajouter un timestamp spécifique pour certains statuts
+      if (newStatus == 'in_progress') {
+        updates['startedAt'] = FieldValue.serverTimestamp();
+      } else if (newStatus == 'completed') {
+        updates['completedAt'] = FieldValue.serverTimestamp();
+      }
+
+      await _firestore
+          .collection('appointments')
+          .doc(appointmentId)
+          .update(updates);
+
+      // Envoyer les notifications
+      await _sendStatusNotifications(currentAppointment, newStatus);
+
+      print('🔄 STATUT MODIFIÉ: $appointmentId -> $newStatus');
+    } catch (e) {
+      print('❌ Erreur mise à jour statut: $e');
+      throw e;
+    }
+  }
+
+  // NOUVELLE MÉTHODE : Envoyer les notifications de statut
+  Future<void> _sendStatusNotifications(
+      Appointment appointment, String newStatus) async {
+    // NOTIFICATION AVEC EMAIL
+    await _notificationService.sendStatusUpdate(
+      appointment.clientName,
+      appointment.service,
+      newStatus,
+      clientEmail: appointment.clientEmail, // AJOUTER l'email
+    );
+
+    // Système de fidélité pour les RDV complétés
+    if (newStatus == 'completed' && _loyaltyService != null) {
+      print('🎯 DÉCLENCHEMENT FIDÉLITÉ AUTO pour: ${appointment.clientName}');
+      await _loyaltyService!.awardPointsForAppointment(appointment);
+    }
+
+    if (newStatus == 'confirmed') {
+      await _scheduleReminder(appointment);
+    }
+
+    // PROGRAMMER LES RAPPELS DE SUIVI APRÈS RDV
+    if (newStatus == 'completed') {
+      await _scheduleFollowUpReminders(appointment);
+    }
+  }
+
+  // Progresser au statut suivant
+  Future<void> progressToNextStatus(
+      String appointmentId, String currentStatus) async {
+    try {
+      String nextStatus = _getNextStatus(currentStatus);
+
+      if (nextStatus != currentStatus) {
+        await updateAppointmentStatus(appointmentId, nextStatus);
+      }
+    } catch (e) {
+      print('❌ Erreur progression statut: $e');
+      throw e;
+    }
+  }
+
+  // Obtenir le statut suivant dans le workflow
+  String _getNextStatus(String currentStatus) {
+    switch (currentStatus) {
+      case 'confirmed':
+        return 'in_progress';
+      case 'in_progress':
+        return 'diagnostic';
+      case 'diagnostic':
+        return 'repair';
+      case 'repair':
+        return 'quality_check';
+      case 'quality_check':
+        return 'completed';
+      default:
+        return currentStatus;
+    }
+  }
+
+  // Vérifier si un statut peut progresser
+  bool canProgressStatus(String currentStatus) {
+    return ['confirmed', 'in_progress', 'diagnostic', 'repair', 'quality_check']
+        .contains(currentStatus);
+  }
+
+  // Obtenir le texte du statut pour l'affichage
+  String getStatusDisplayText(String status) {
+    switch (status) {
+      case 'pending':
+        return 'En attente';
+      case 'confirmed':
+        return 'Confirmé';
+      case 'in_progress':
+        return 'En cours de préparation';
+      case 'diagnostic':
+        return 'Diagnostic';
+      case 'repair':
+        return 'En réparation';
+      case 'quality_check':
+        return 'Contrôle qualité';
+      case 'completed':
+        return 'Terminé';
+      case 'cancelled':
+        return 'Annulé';
+      case 'rejected':
+        return 'Rejeté';
+      default:
+        return status;
     }
   }
 
@@ -67,10 +229,12 @@ class AppointmentService {
       // PROGRAMMER LES RAPPELS AVANCÉS
       await _scheduleAdvancedReminders(appointmentWithId);
 
+      // METTRE À JOUR : Ajouter l'email dans la notification
       await _notificationService.sendAppointmentConfirmation(
         appointment.clientName,
         appointment.service,
         appointment.dateTime,
+        clientEmail: appointment.clientEmail, // AJOUTER
       );
 
       print(
@@ -82,7 +246,7 @@ class AppointmentService {
     }
   }
 
-  // SYSTÈME DE RAPPELS AVANCÉS
+  // METTRE À JOUR : Système de rappels avancés avec emails
   Future<void> _scheduleAdvancedReminders(Appointment appointment) async {
     try {
       final now = DateTime.now();
@@ -100,6 +264,8 @@ class AppointmentService {
             'type': 'appointment_reminder_24h',
             'appointmentId': appointment.id!,
           },
+          clientEmail: appointment.clientEmail, // AJOUTER
+          clientName: appointment.clientName, // AJOUTER
         );
         print('⏰ Rappel 24h programmé pour: ${appointment.clientName}');
       }
@@ -116,11 +282,13 @@ class AppointmentService {
             'type': 'appointment_reminder_2h',
             'appointmentId': appointment.id!,
           },
+          clientEmail: appointment.clientEmail, // AJOUTER
+          clientName: appointment.clientName, // AJOUTER
         );
         print('⏰ Rappel 2h programmé pour: ${appointment.clientName}');
       }
 
-      // Alerte trafic 1h avant (si géolocalisation disponible)
+      // Alerte trafic 1h avant
       final trafficAlert = appointmentDate.subtract(const Duration(hours: 1));
       if (trafficAlert.isAfter(now)) {
         await _notificationService.scheduleNotification(
@@ -132,6 +300,8 @@ class AppointmentService {
             'type': 'traffic_alert',
             'appointmentId': appointment.id!,
           },
+          clientEmail: appointment.clientEmail, // AJOUTER
+          clientName: appointment.clientName, // AJOUTER
         );
         print('🚗 Alerte trafic programmée pour: ${appointment.clientName}');
       }
@@ -148,6 +318,8 @@ class AppointmentService {
             'type': 'preparation_reminder',
             'appointmentId': appointment.id!,
           },
+          clientEmail: appointment.clientEmail, // AJOUTER
+          clientName: appointment.clientName, // AJOUTER
         );
       }
     } catch (e) {
@@ -163,7 +335,6 @@ class AppointmentService {
     try {
       print('📅 Recherche des RDV pour: $clientEmail');
 
-      // VERSION CORRIGÉE : Sans le orderBy qui cause l'erreur d'index
       final querySnapshot = await _firestore
           .collection('appointments')
           .where('clientEmail', isEqualTo: clientEmail)
@@ -181,8 +352,6 @@ class AppointmentService {
       return appointments;
     } catch (e) {
       print('❌ Erreur récupération RDV client: $e');
-
-      // En cas d'erreur, retourner une liste vide pour éviter de bloquer l'interface
       return [];
     }
   }
@@ -199,50 +368,6 @@ class AppointmentService {
           .toList();
     } catch (e) {
       print('❌ Erreur récupération tous les RDV: $e');
-      throw e;
-    }
-  }
-
-  Future<void> updateAppointmentStatus(
-      String appointmentId, String status) async {
-    try {
-      await _firestore.collection('appointments').doc(appointmentId).update({
-        'status': status,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      // Récupérer le RDV pour les notifications
-      final doc =
-          await _firestore.collection('appointments').doc(appointmentId).get();
-      if (doc.exists) {
-        final appointment = Appointment.fromFirestore(doc);
-
-        await _notificationService.sendStatusUpdate(
-          appointment.clientName,
-          appointment.service,
-          status,
-        );
-
-        // AJOUT: Vérifier si _loyaltyService est disponible
-        if (status == 'completed' && _loyaltyService != null) {
-          print(
-              '🎯 DÉCLENCHEMENT FIDÉLITÉ AUTO pour: ${appointment.clientName}');
-          await _loyaltyService!.awardPointsForAppointment(appointment);
-        }
-
-        if (status == 'confirmed') {
-          await _scheduleReminder(appointment);
-        }
-
-        // PROGRAMMER LES RAPPELS DE SUIVI APRÈS RDV
-        if (status == 'completed') {
-          await _scheduleFollowUpReminders(appointment);
-        }
-      }
-
-      print('🔄 STATUT MODIFIÉ: $appointmentId -> $status');
-    } catch (e) {
-      print('❌ Erreur mise à jour statut: $e');
       throw e;
     }
   }
@@ -295,6 +420,8 @@ class AppointmentService {
             'type': 'feedback_reminder',
             'appointmentId': appointment.id!,
           },
+          clientEmail: appointment.clientEmail, // AJOUTER
+          clientName: appointment.clientName, // AJOUTER
         );
       }
 
@@ -310,6 +437,8 @@ class AppointmentService {
             'type': 'maintenance_reminder',
             'appointmentId': appointment.id!,
           },
+          clientEmail: appointment.clientEmail, // AJOUTER
+          clientName: appointment.clientName, // AJOUTER
         );
       }
     } catch (e) {
@@ -322,15 +451,15 @@ class AppointmentService {
 
     switch (appointment.service.toLowerCase()) {
       case 'vidange':
-        return baseDate.add(const Duration(days: 90)); // 3 mois
+        return baseDate.add(const Duration(days: 90));
       case 'révision complète':
-        return baseDate.add(const Duration(days: 365)); // 1 an
+        return baseDate.add(const Duration(days: 365));
       case 'freinage':
-        return baseDate.add(const Duration(days: 180)); // 6 mois
+        return baseDate.add(const Duration(days: 180));
       case 'pneus':
-        return baseDate.add(const Duration(days: 365)); // 1 an
+        return baseDate.add(const Duration(days: 365));
       default:
-        return baseDate.add(const Duration(days: 180)); // 6 mois par défaut
+        return baseDate.add(const Duration(days: 180));
     }
   }
 
@@ -338,10 +467,12 @@ class AppointmentService {
     final reminderDate = appointment.dateTime.subtract(const Duration(days: 1));
     if (reminderDate.isAfter(DateTime.now())) {
       print('⏰ RAPPEL PROGRAMMÉ pour: ${appointment.clientName}');
+      // METTRE À JOUR : Ajouter l'email dans le rappel
       await _notificationService.sendReminder(
         appointment.clientName,
         appointment.service,
         appointment.dateTime,
+        clientEmail: appointment.clientEmail, // AJOUTER
       );
     }
   }
@@ -469,6 +600,13 @@ class AppointmentService {
           allAppointments.where((a) => a.status == 'pending').length;
       final confirmed =
           allAppointments.where((a) => a.status == 'confirmed').length;
+      final inProgress =
+          allAppointments.where((a) => a.status == 'in_progress').length;
+      final diagnostic =
+          allAppointments.where((a) => a.status == 'diagnostic').length;
+      final repair = allAppointments.where((a) => a.status == 'repair').length;
+      final qualityCheck =
+          allAppointments.where((a) => a.status == 'quality_check').length;
       final completed =
           allAppointments.where((a) => a.status == 'completed').length;
       final cancelled =
@@ -480,6 +618,10 @@ class AppointmentService {
         'past': past,
         'pending': pending,
         'confirmed': confirmed,
+        'in_progress': inProgress,
+        'diagnostic': diagnostic,
+        'repair': repair,
+        'quality_check': qualityCheck,
         'completed': completed,
         'cancelled': cancelled,
       };
@@ -491,6 +633,10 @@ class AppointmentService {
         'past': 0,
         'pending': 0,
         'confirmed': 0,
+        'in_progress': 0,
+        'diagnostic': 0,
+        'repair': 0,
+        'quality_check': 0,
         'completed': 0,
         'cancelled': 0,
       };
@@ -532,7 +678,7 @@ class AppointmentService {
             .toList());
   }
 
-  // NOUVELLE MÉTHODE : Annuler tous les rappels d'un RDV
+  // Annuler tous les rappels d'un RDV
   Future<void> cancelAppointmentReminders(String appointmentId) async {
     try {
       await _notificationService.cancelScheduledNotifications(

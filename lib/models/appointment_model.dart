@@ -12,13 +12,13 @@ class Appointment {
   final String? notes;
   final String? vehicle;
   final DateTime createdAt;
-  // NOUVEAUX CHAMPS POUR LE TECHNICIEN
   final String? assignedTechnicianId;
   final String? assignedTechnicianName;
   final String? assignedTechnicianSpecialty;
-  // NOUVEAUX CHAMPS POUR LE SYSTÈME DE CHAT ET GARAGE
-  final String garageId; // AJOUT OBLIGATOIRE
-  final String? garageName; // AJOUT OPTIONNEL
+  final String garageId;
+  final String? garageName;
+  final DateTime? startedAt;
+  final DateTime? completedAt;
 
   Appointment({
     this.id,
@@ -32,13 +32,13 @@ class Appointment {
     this.notes,
     this.vehicle,
     required this.createdAt,
-    // NOUVEAUX PARAMÈTRES
     this.assignedTechnicianId,
     this.assignedTechnicianName,
     this.assignedTechnicianSpecialty,
-    // AJOUT DES NOUVEAUX PARAMÈTRES
-    required this.garageId, // OBLIGATOIRE
-    this.garageName, // OPTIONNEL
+    required this.garageId,
+    this.garageName,
+    this.startedAt,
+    this.completedAt,
   });
 
   String get formattedDate {
@@ -68,12 +68,50 @@ class Appointment {
     return dateTime.difference(DateTime.now());
   }
 
-  // NOUVELLE MÉTHODE : Vérifier si un technicien est assigné
   bool get hasAssignedTechnician {
     return assignedTechnicianId != null && assignedTechnicianId!.isNotEmpty;
   }
 
-  // MÉTHODE POUR FIRESTORE - Conversion vers Map
+  // NOUVELLES MÉTHODES POUR LE WORKFLOW
+  bool get canProgress {
+    return ['confirmed', 'in_progress', 'diagnostic', 'repair', 'quality_check']
+        .contains(status);
+  }
+
+  String get nextStatus {
+    switch (status) {
+      case 'confirmed':
+        return 'in_progress';
+      case 'in_progress':
+        return 'diagnostic';
+      case 'diagnostic':
+        return 'repair';
+      case 'repair':
+        return 'quality_check';
+      case 'quality_check':
+        return 'completed';
+      default:
+        return status;
+    }
+  }
+
+  String get nextStatusText {
+    switch (nextStatus) {
+      case 'in_progress':
+        return 'Commencer la préparation';
+      case 'diagnostic':
+        return 'Démarrer le diagnostic';
+      case 'repair':
+        return 'Commencer la réparation';
+      case 'quality_check':
+        return 'Contrôle qualité';
+      case 'completed':
+        return 'Marquer comme terminé';
+      default:
+        return 'Terminer';
+    }
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'clientId': clientId,
@@ -89,13 +127,15 @@ class Appointment {
       'assignedTechnicianId': assignedTechnicianId,
       'assignedTechnicianName': assignedTechnicianName,
       'assignedTechnicianSpecialty': assignedTechnicianSpecialty,
-      'garageId': garageId, // AJOUT
-      'garageName': garageName, // AJOUT
+      'garageId': garageId,
+      'garageName': garageName,
+      'startedAt': startedAt != null ? Timestamp.fromDate(startedAt!) : null,
+      'completedAt':
+          completedAt != null ? Timestamp.fromDate(completedAt!) : null,
       'updatedAt': FieldValue.serverTimestamp(),
     };
   }
 
-  // MÉTHODE POUR FIRESTORE - Création depuis DocumentSnapshot
   factory Appointment.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
 
@@ -107,6 +147,14 @@ class Appointment {
     final createdAt = data['createdAt'] is Timestamp
         ? (data['createdAt'] as Timestamp).toDate()
         : DateTime.parse(data['createdAt'] as String);
+
+    final startedAt = data['startedAt'] is Timestamp
+        ? (data['startedAt'] as Timestamp).toDate()
+        : null;
+
+    final completedAt = data['completedAt'] is Timestamp
+        ? (data['completedAt'] as Timestamp).toDate()
+        : null;
 
     return Appointment(
       id: doc.id,
@@ -124,13 +172,13 @@ class Appointment {
       assignedTechnicianName: data['assignedTechnicianName'] as String?,
       assignedTechnicianSpecialty:
           data['assignedTechnicianSpecialty'] as String?,
-      garageId: data['garageId'] as String? ??
-          'garage_principal', // AJOUT avec valeur par défaut
-      garageName: data['garageName'] as String?, // AJOUT
+      garageId: data['garageId'] as String? ?? 'garage_principal',
+      garageName: data['garageName'] as String?,
+      startedAt: startedAt,
+      completedAt: completedAt,
     );
   }
 
-  // CONSERVER L'ANCIENNE MÉTHODE fromMap pour la compatibilité
   factory Appointment.fromMap(String id, Map<String, dynamic> map) {
     return Appointment(
       id: id,
@@ -148,13 +196,17 @@ class Appointment {
       assignedTechnicianName: map['assignedTechnicianName'] as String?,
       assignedTechnicianSpecialty:
           map['assignedTechnicianSpecialty'] as String?,
-      garageId: map['garageId'] as String? ??
-          'garage_principal', // AJOUT avec valeur par défaut
-      garageName: map['garageName'] as String?, // AJOUT
+      garageId: map['garageId'] as String? ?? 'garage_principal',
+      garageName: map['garageName'] as String?,
+      startedAt: map['startedAt'] != null
+          ? DateTime.parse(map['startedAt'] as String)
+          : null,
+      completedAt: map['completedAt'] != null
+          ? DateTime.parse(map['completedAt'] as String)
+          : null,
     );
   }
 
-  // Méthode pour créer une copie avec des valeurs mises à jour
   Appointment copyWith({
     String? id,
     String? clientId,
@@ -170,8 +222,10 @@ class Appointment {
     String? assignedTechnicianId,
     String? assignedTechnicianName,
     String? assignedTechnicianSpecialty,
-    String? garageId, // AJOUT
-    String? garageName, // AJOUT
+    String? garageId,
+    String? garageName,
+    DateTime? startedAt,
+    DateTime? completedAt,
   }) {
     return Appointment(
       id: id ?? this.id,
@@ -190,8 +244,10 @@ class Appointment {
           assignedTechnicianName ?? this.assignedTechnicianName,
       assignedTechnicianSpecialty:
           assignedTechnicianSpecialty ?? this.assignedTechnicianSpecialty,
-      garageId: garageId ?? this.garageId, // AJOUT
-      garageName: garageName ?? this.garageName, // AJOUT
+      garageId: garageId ?? this.garageId,
+      garageName: garageName ?? this.garageName,
+      startedAt: startedAt ?? this.startedAt,
+      completedAt: completedAt ?? this.completedAt,
     );
   }
 }

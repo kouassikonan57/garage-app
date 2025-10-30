@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/appointment_service.dart';
 import '../services/technician_service.dart';
 import '../services/simple_auth_service.dart';
-import '../services/service_provider.dart'; // AJOUT
+import '../services/service_provider.dart';
 import '../models/appointment_model.dart';
 import '../models/technician_model.dart';
 import '../models/user_model.dart';
@@ -16,7 +16,7 @@ class GarageManagementScreen extends StatefulWidget {
 }
 
 class _GarageManagementScreenState extends State<GarageManagementScreen> {
-  late AppointmentService _appointmentService; // MODIFIÉ: late
+  late AppointmentService _appointmentService;
   final TechnicianService _technicianService = TechnicianService();
   List<Appointment> _appointments = [];
   List<Technician> _technicians = [];
@@ -28,7 +28,7 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
   @override
   void initState() {
     super.initState();
-    _appointmentService = ServiceProvider().appointmentService; // MODIFIÉ
+    _appointmentService = ServiceProvider().appointmentService;
     _checkGarageAccess();
   }
 
@@ -316,45 +316,61 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
     }
   }
 
-  List<Appointment> get _filteredAppointments {
-    if (_selectedFilter == 'all') {
-      return _appointments;
-    } else if (_selectedFilter == 'with_technician') {
-      return _appointments
-          .where((appointment) => appointment.hasAssignedTechnician)
-          .toList();
+  // NOUVELLE MÉTHODE: Vérifier si un statut est autorisé
+  bool _isStatusAllowed(String currentStatus, String newStatus) {
+    // Définir l'ordre du workflow (unidirectionnel)
+    final workflowOrder = [
+      'pending',
+      'confirmed',
+      'in_progress',
+      'diagnostic',
+      'repair',
+      'quality_check',
+      'completed'
+    ];
+
+    final currentIndex = workflowOrder.indexOf(currentStatus);
+    final newIndex = workflowOrder.indexOf(newStatus);
+
+    // Autoriser seulement la progression vers l'avant
+    if (currentIndex != -1 && newIndex != -1) {
+      return newIndex > currentIndex;
     }
-    return _appointments
-        .where((appointment) => appointment.status == _selectedFilter)
-        .toList();
+
+    // Toujours autoriser l'annulation et le rejet
+    return newStatus == 'cancelled' || newStatus == 'rejected';
   }
 
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'pending':
-        return Colors.orange;
-      case 'confirmed':
-        return Colors.green;
-      case 'cancelled':
-        return Colors.red;
-      default:
-        return Colors.grey;
+  // MÉTHODE: Faire progresser le statut du RDV
+  Future<void> _progressAppointmentStatus(Appointment appointment) async {
+    try {
+      await _appointmentService.progressToNextStatus(
+          appointment.id!, appointment.status);
+      await _loadAppointments();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Statut mis à jour: ${_getStatusText(appointment.nextStatus)}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Erreur progression statut: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur de mise à jour: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
-  String _getStatusText(String status) {
-    switch (status) {
-      case 'pending':
-        return 'En attente';
-      case 'confirmed':
-        return 'Confirmé';
-      case 'cancelled':
-        return 'Annulé';
-      default:
-        return status;
-    }
-  }
-
+  // MÉTHODE: Mettre à jour un statut spécifique
   Future<void> _updateAppointmentStatus(
       Appointment appointment, String newStatus) async {
     try {
@@ -383,6 +399,52 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
         );
       }
     }
+  }
+
+  List<Appointment> get _filteredAppointments {
+    if (_selectedFilter == 'all') {
+      return _appointments;
+    } else if (_selectedFilter == 'with_technician') {
+      return _appointments
+          .where((appointment) => appointment.hasAssignedTechnician)
+          .toList();
+    } else if (_selectedFilter == 'in_progress') {
+      return _appointments
+          .where((appointment) => appointment.canProgress)
+          .toList();
+    }
+    return _appointments
+        .where((appointment) => appointment.status == _selectedFilter)
+        .toList();
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'pending':
+        return Colors.orange;
+      case 'confirmed':
+        return Colors.green;
+      case 'in_progress':
+        return Colors.blue;
+      case 'diagnostic':
+        return Colors.blue;
+      case 'repair':
+        return Colors.blue;
+      case 'quality_check':
+        return Colors.purple;
+      case 'completed':
+        return Colors.green;
+      case 'cancelled':
+        return Colors.red;
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _getStatusText(String status) {
+    return _appointmentService.getStatusDisplayText(status);
   }
 
   void _showAppointmentDetails(Appointment appointment) {
@@ -434,6 +496,51 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
               ],
               if (appointment.notes != null && appointment.notes!.isNotEmpty)
                 _buildDetailRow('Notes:', appointment.notes!),
+
+              // Affichage de la progression
+              if (appointment.canProgress) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green[50],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Prochaine étape:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _getStatusText(appointment.nextStatus),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _progressAppointmentStatus(appointment);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 48),
+                        ),
+                        child: Text(appointment.nextStatusText),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -442,7 +549,8 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
             onPressed: () => Navigator.pop(context),
             child: const Text('Fermer'),
           ),
-          if (!appointment.hasAssignedTechnician)
+          if (!appointment.hasAssignedTechnician &&
+              appointment.status == 'confirmed')
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
@@ -451,7 +559,7 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
               style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
               child: const Text('Assigner Technicien'),
             )
-          else
+          else if (appointment.hasAssignedTechnician)
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
@@ -619,6 +727,13 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
                         style: const TextStyle(color: Colors.orange),
                       ),
                     ),
+                    Chip(
+                      backgroundColor: Colors.blue[100],
+                      label: Text(
+                        '${_appointments.where((a) => a.canProgress).length} RDV en cours',
+                        style: const TextStyle(color: Colors.blue),
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -635,7 +750,8 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
                   _buildFilterChip('Tous', 'all'),
                   _buildFilterChip('En attente', 'pending'),
                   _buildFilterChip('Confirmés', 'confirmed'),
-                  _buildFilterChip('Annulés', 'cancelled'),
+                  _buildFilterChip('En cours', 'in_progress'),
+                  _buildFilterChip('Terminés', 'completed'),
                   _buildFilterChip('Avec Technicien', 'with_technician'),
                 ],
               ),
@@ -717,7 +833,7 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
             shape: BoxShape.circle,
           ),
           child: Icon(
-            Icons.person,
+            _getStatusIcon(appointment.status),
             color: _getStatusColor(appointment.status),
           ),
         ),
@@ -789,6 +905,27 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
+            // Bouton de progression rapide
+            if (appointment.canProgress) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 32,
+                child: ElevatedButton(
+                  onPressed: () => _progressAppointmentStatus(appointment),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    minimumSize: const Size(0, 0),
+                  ),
+                  child: Text(
+                    appointment.nextStatusText,
+                    style: const TextStyle(fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
         trailing: PopupMenuButton<String>(
@@ -797,72 +934,128 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
               _assignTechnician(appointment);
             } else if (value == 'release_technician') {
               _releaseTechnician(appointment);
+            } else if (value == 'progress_status' && appointment.canProgress) {
+              _progressAppointmentStatus(appointment);
             } else {
               _updateAppointmentStatus(appointment, value);
             }
           },
-          itemBuilder: (context) => [
-            if (appointment.status != 'confirmed')
-              const PopupMenuItem(
-                value: 'confirmed',
-                child: Row(
-                  children: [
-                    Icon(Icons.check_circle, color: Colors.green),
-                    SizedBox(width: 8),
-                    Text('Confirmer'),
-                  ],
+          itemBuilder: (context) {
+            // FILTRER les options selon le statut actuel
+            final menuItems = <PopupMenuEntry<String>>[];
+
+            // Options de statut de base (uniquement autorisées)
+            if (_isStatusAllowed(appointment.status, 'confirmed')) {
+              menuItems.add(
+                PopupMenuItem(
+                  value: 'confirmed',
+                  child: Row(
+                    children: [
+                      Icon(Icons.check_circle,
+                          color: _getStatusColor('confirmed')),
+                      const SizedBox(width: 8),
+                      const Text('Confirmer'),
+                    ],
+                  ),
                 ),
-              ),
-            if (appointment.status != 'cancelled')
-              const PopupMenuItem(
+              );
+            }
+
+            // Toujours autoriser l'annulation
+            menuItems.add(
+              PopupMenuItem(
                 value: 'cancelled',
                 child: Row(
                   children: [
-                    Icon(Icons.cancel, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Annuler'),
+                    Icon(Icons.cancel, color: _getStatusColor('cancelled')),
+                    const SizedBox(width: 8),
+                    const Text('Annuler'),
                   ],
                 ),
               ),
-            if (appointment.status != 'pending')
-              const PopupMenuItem(
-                value: 'pending',
-                child: Row(
-                  children: [
-                    Icon(Icons.pending, color: Colors.orange),
-                    SizedBox(width: 8),
-                    Text('Remettre en attente'),
-                  ],
+            );
+
+            // Option de progression (uniquement si autorisée)
+            if (appointment.canProgress) {
+              menuItems.add(
+                PopupMenuItem(
+                  value: 'progress_status',
+                  child: Row(
+                    children: [
+                      Icon(Icons.arrow_forward,
+                          color: _getStatusColor(appointment.nextStatus)),
+                      const SizedBox(width: 8),
+                      Text('${appointment.nextStatusText} →'),
+                    ],
+                  ),
                 ),
-              ),
-            const PopupMenuDivider(),
-            if (!appointment.hasAssignedTechnician)
-              const PopupMenuItem(
-                value: 'assign_technician',
-                child: Row(
-                  children: [
-                    Icon(Icons.person_add, color: Colors.blue),
-                    SizedBox(width: 8),
-                    Text('Assigner Technicien'),
-                  ],
+              );
+            }
+
+            // Gestion des techniciens
+            if (!appointment.hasAssignedTechnician &&
+                appointment.status == 'confirmed') {
+              menuItems.add(const PopupMenuDivider());
+              menuItems.add(
+                const PopupMenuItem(
+                  value: 'assign_technician',
+                  child: Row(
+                    children: [
+                      Icon(Icons.person_add, color: Colors.blue),
+                      SizedBox(width: 8),
+                      Text('Assigner Technicien'),
+                    ],
+                  ),
                 ),
-              )
-            else
-              const PopupMenuItem(
-                value: 'release_technician',
-                child: Row(
-                  children: [
-                    Icon(Icons.person_remove, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Libérer Technicien'),
-                  ],
+              );
+            } else if (appointment.hasAssignedTechnician) {
+              menuItems.add(const PopupMenuDivider());
+              menuItems.add(
+                const PopupMenuItem(
+                  value: 'release_technician',
+                  child: Row(
+                    children: [
+                      Icon(Icons.person_remove, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Libérer Technicien'),
+                    ],
+                  ),
                 ),
-              ),
-          ],
+              );
+            }
+
+            return menuItems;
+          },
         ),
         onTap: () => _showAppointmentDetails(appointment),
       ),
     );
+  }
+
+  // MÉTHODE: Obtenir l'icône selon le statut
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case 'pending':
+        return Icons.access_time;
+      case 'confirmed':
+        return Icons.check_circle;
+      case 'in_progress':
+        return Icons.build_circle;
+      case 'diagnostic':
+        return Icons.search;
+      case 'repair':
+        return Icons.build;
+      case 'quality_check':
+        return Icons.verified;
+      case 'completed':
+        return Icons.done_all;
+      case 'cancelled':
+        return Icons.cancel;
+      case 'rejected':
+        return Icons.block;
+      default:
+        return Icons.calendar_today;
+    }
   }
 
   Future<void> _logout() async {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../models/appointment_model.dart';
 import '../services/appointment_service.dart';
-import '../services/service_provider.dart'; // AJOUT
+import '../services/service_provider.dart';
 import 'in_app_chat.dart';
 
 class AppointmentTracker extends StatefulWidget {
@@ -10,7 +10,6 @@ class AppointmentTracker extends StatefulWidget {
   final String clientEmail;
 
   const AppointmentTracker({
-    // SUPPRIMER appointmentService
     super.key,
     required this.appointmentId,
     required this.clientEmail,
@@ -23,7 +22,7 @@ class AppointmentTracker extends StatefulWidget {
 class _AppointmentTrackerState extends State<AppointmentTracker> {
   int _currentStep = 0;
   Timer? _updateTimer;
-  late final AppointmentService _appointmentService; // MODIFIER
+  late final AppointmentService _appointmentService;
   Appointment? _currentAppointment;
   bool _isAppointmentValid = false;
   bool _isLoading = true;
@@ -32,7 +31,7 @@ class _AppointmentTrackerState extends State<AppointmentTracker> {
   @override
   void initState() {
     super.initState();
-    _appointmentService = ServiceProvider().appointmentService; // MODIFIER
+    _appointmentService = ServiceProvider().appointmentService;
     _initializeAppointment();
   }
 
@@ -256,6 +255,8 @@ class _AppointmentTrackerState extends State<AppointmentTracker> {
 
   @override
   Widget build(BuildContext context) {
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Suivi du Rendez-vous'),
@@ -267,7 +268,7 @@ class _AppointmentTrackerState extends State<AppointmentTracker> {
           : _appointmentNotFound
               ? _buildNotFoundState()
               : _isAppointmentValid
-                  ? _buildAppointmentContent()
+                  ? _buildAppointmentContent(isSmallScreen)
                   : _buildInvalidState(),
     );
   }
@@ -286,131 +287,153 @@ class _AppointmentTrackerState extends State<AppointmentTracker> {
   }
 
   Widget _buildNotFoundState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
-          const SizedBox(height: 16),
-          const Text(
-            'Rendez-vous non trouvé',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Le rendez-vous a été supprimé ou n\'existe pas dans notre base de données',
-            style: TextStyle(color: Colors.grey[600]),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
+    return Padding(
+      padding: const EdgeInsets.all(20.0),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'Rendez-vous non trouvé',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[700],
+              ),
+              textAlign: TextAlign.center,
             ),
-            child: const Text('Retour à la liste'),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              'Le rendez-vous a été supprimé ou n\'existe pas dans notre base de données',
+              style: TextStyle(color: Colors.grey[600]),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(200, 50),
+              ),
+              child: const Text('Retour à la liste'),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildInvalidState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.warning, size: 64, color: Colors.orange),
-          const SizedBox(height: 16),
-          const Text(
-            'Rendez-vous invalide',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Impossible d\'afficher les détails de ce rendez-vous',
-            style: TextStyle(color: Colors.grey[600]),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
+    return Padding(
+      padding: const EdgeInsets.all(20.0),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.warning, size: 64, color: Colors.orange),
+            const SizedBox(height: 16),
+            Text(
+              'Rendez-vous invalide',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[700],
+              ),
+              textAlign: TextAlign.center,
             ),
-            child: const Text('Retour à la liste'),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              'Impossible d\'afficher les détails de ce rendez-vous',
+              style: TextStyle(color: Colors.grey[600]),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(200, 50),
+              ),
+              child: const Text('Retour à la liste'),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildAppointmentContent() {
+  Widget _buildAppointmentContent(bool isSmallScreen) {
     if (_currentAppointment!.status == 'rejected' ||
         _currentAppointment!.status == 'cancelled') {
-      return _buildRejectedState();
+      return _buildRejectedState(isSmallScreen);
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildAppointmentHeader(),
+          _buildAppointmentHeader(isSmallScreen),
           const SizedBox(height: 20),
-          _buildTimeline(),
+          _buildTimeline(isSmallScreen),
           const SizedBox(height: 20),
-          _buildAppointmentDetails(),
+          _buildAppointmentDetails(isSmallScreen),
           const SizedBox(height: 16),
-          _buildQuickContact(),
+          _buildQuickContact(isSmallScreen),
         ],
       ),
     );
   }
 
-  Widget _buildRejectedState() {
+  Widget _buildRejectedState(bool isSmallScreen) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildAppointmentHeader(),
+          _buildAppointmentHeader(isSmallScreen),
           const SizedBox(height: 20),
-          _buildTimeline(),
+          _buildTimeline(isSmallScreen),
           const SizedBox(height: 20),
-          _buildAppointmentDetails(),
+          _buildAppointmentDetails(isSmallScreen),
           const SizedBox(height: 20),
-          _buildRejectedMessage(),
+          _buildRejectedMessage(isSmallScreen),
           const SizedBox(height: 16),
-          _buildQuickContact(),
+          _buildQuickContact(isSmallScreen),
         ],
       ),
     );
   }
 
-  Widget _buildRejectedMessage() {
+  Widget _buildRejectedMessage(bool isSmallScreen) {
     return Card(
       elevation: 2,
       color: Colors.red[50],
+      margin: EdgeInsets.symmetric(horizontal: isSmallScreen ? 4 : 0),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.warning, color: Colors.red[700], size: 24),
-                const SizedBox(width: 12),
-                Text(
-                  _currentAppointment!.status == 'rejected'
-                      ? 'Rendez-vous rejeté'
-                      : 'Rendez-vous annulé',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red[700],
+                Icon(Icons.warning,
+                    color: Colors.red[700], size: isSmallScreen ? 20 : 24),
+                SizedBox(width: isSmallScreen ? 8 : 12),
+                Expanded(
+                  child: Text(
+                    _currentAppointment!.status == 'rejected'
+                        ? 'Rendez-vous rejeté'
+                        : 'Rendez-vous annulé',
+                    style: TextStyle(
+                      fontSize: isSmallScreen ? 16 : 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red[700],
+                    ),
                   ),
                 ),
               ],
@@ -420,23 +443,29 @@ class _AppointmentTrackerState extends State<AppointmentTracker> {
               _currentAppointment!.status == 'rejected'
                   ? 'Le garage a refusé votre demande de rendez-vous. Cela peut être dû à :'
                   : 'Le rendez-vous a été annulé. Raisons possibles :',
-              style: const TextStyle(fontSize: 14),
+              style: TextStyle(fontSize: isSmallScreen ? 13 : 14),
             ),
             const SizedBox(height: 8),
             Padding(
-              padding: const EdgeInsets.only(left: 16),
+              padding: EdgeInsets.only(left: isSmallScreen ? 8 : 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (_currentAppointment!.status == 'rejected') ...[
-                    _buildReasonItem('• Indisponibilité à la date demandée'),
-                    _buildReasonItem('• Capacité d\'accueil dépassée'),
-                    _buildReasonItem('• Service non disponible temporairement'),
-                    _buildReasonItem('• Problème de planning'),
+                    _buildReasonItem(
+                        '• Indisponibilité à la date demandée', isSmallScreen),
+                    _buildReasonItem(
+                        '• Capacité d\'accueil dépassée', isSmallScreen),
+                    _buildReasonItem('• Service non disponible temporairement',
+                        isSmallScreen),
+                    _buildReasonItem('• Problème de planning', isSmallScreen),
                   ] else ...[
-                    _buildReasonItem('• Annulation par le client'),
-                    _buildReasonItem('• Annulation par le garage'),
-                    _buildReasonItem('• Problème de disponibilité'),
+                    _buildReasonItem(
+                        '• Annulation par le client', isSmallScreen),
+                    _buildReasonItem(
+                        '• Annulation par le garage', isSmallScreen),
+                    _buildReasonItem(
+                        '• Problème de disponibilité', isSmallScreen),
                   ],
                 ],
               ),
@@ -445,7 +474,7 @@ class _AppointmentTrackerState extends State<AppointmentTracker> {
             Text(
               'Contactez le garage pour plus d\'informations ou pour prendre un nouveau rendez-vous.',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: isSmallScreen ? 13 : 14,
                 fontStyle: FontStyle.italic,
                 color: Colors.grey[700],
               ),
@@ -456,33 +485,38 @@ class _AppointmentTrackerState extends State<AppointmentTracker> {
     );
   }
 
-  Widget _buildReasonItem(String text) {
+  Widget _buildReasonItem(String text, bool isSmallScreen) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 14),
+        style: TextStyle(fontSize: isSmallScreen ? 13 : 14),
       ),
     );
   }
 
-  Widget _buildAppointmentHeader() {
+  Widget _buildAppointmentHeader(bool isSmallScreen) {
     return Card(
       elevation: 2,
+      margin: EdgeInsets.symmetric(horizontal: isSmallScreen ? 4 : 0),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.calendar_today, color: Colors.blue[700], size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  'Rendez-vous #${_currentAppointment!.id!.substring(0, 8)}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                Icon(Icons.calendar_today,
+                    color: Colors.blue[700], size: isSmallScreen ? 18 : 20),
+                SizedBox(width: isSmallScreen ? 6 : 8),
+                Expanded(
+                  child: Text(
+                    'Rendez-vous #${_currentAppointment!.id!.substring(0, 8)}',
+                    style: TextStyle(
+                      fontSize: isSmallScreen ? 15 : 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -490,18 +524,21 @@ class _AppointmentTrackerState extends State<AppointmentTracker> {
             const SizedBox(height: 8),
             Text(
               'Service: ${_currentAppointment!.service}',
-              style: const TextStyle(fontSize: 14),
+              style: TextStyle(fontSize: isSmallScreen ? 13 : 14),
             ),
             if (_currentAppointment!.vehicle != null) ...[
               const SizedBox(height: 4),
               Text(
                 'Véhicule: ${_currentAppointment!.vehicle}',
-                style: const TextStyle(fontSize: 14),
+                style: TextStyle(fontSize: isSmallScreen ? 13 : 14),
               ),
             ],
             const SizedBox(height: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: EdgeInsets.symmetric(
+                horizontal: isSmallScreen ? 10 : 12,
+                vertical: isSmallScreen ? 4 : 6,
+              ),
               decoration: BoxDecoration(
                 color: _getStatusColor().withOpacity(0.1),
                 borderRadius: BorderRadius.circular(16),
@@ -509,7 +546,7 @@ class _AppointmentTrackerState extends State<AppointmentTracker> {
               child: Text(
                 _getStatusText().toUpperCase(),
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: isSmallScreen ? 10 : 12,
                   fontWeight: FontWeight.bold,
                   color: _getStatusColor(),
                 ),
@@ -521,18 +558,19 @@ class _AppointmentTrackerState extends State<AppointmentTracker> {
     );
   }
 
-  Widget _buildTimeline() {
+  Widget _buildTimeline(bool isSmallScreen) {
     return Card(
       elevation: 2,
+      margin: EdgeInsets.symmetric(horizontal: isSmallScreen ? 4 : 0),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Progression du rendez-vous',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: isSmallScreen ? 16 : 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -543,7 +581,8 @@ class _AppointmentTrackerState extends State<AppointmentTracker> {
               final isCompleted = index <= _currentStep;
               final isCurrent = index == _currentStep;
 
-              return _buildTimelineStep(step, isCompleted, isCurrent, index);
+              return _buildTimelineStep(
+                  step, isCompleted, isCurrent, index, isSmallScreen);
             }).toList(),
           ],
         ),
@@ -551,18 +590,18 @@ class _AppointmentTrackerState extends State<AppointmentTracker> {
     );
   }
 
-  Widget _buildTimelineStep(
-      AppointmentStep step, bool isCompleted, bool isCurrent, int index) {
+  Widget _buildTimelineStep(AppointmentStep step, bool isCompleted,
+      bool isCurrent, int index, bool isSmallScreen) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: EdgeInsets.symmetric(vertical: isSmallScreen ? 8 : 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Column(
             children: [
               Container(
-                width: 32,
-                height: 32,
+                width: isSmallScreen ? 28 : 32,
+                height: isSmallScreen ? 28 : 32,
                 decoration: BoxDecoration(
                   color: isCompleted ? step.color : Colors.grey[300],
                   shape: BoxShape.circle,
@@ -570,19 +609,19 @@ class _AppointmentTrackerState extends State<AppointmentTracker> {
                 child: Icon(
                   isCompleted ? step.icon : Icons.access_time,
                   color: isCompleted ? Colors.white : Colors.grey,
-                  size: 16,
+                  size: isSmallScreen ? 14 : 16,
                 ),
               ),
               if (index < _steps.length - 1) ...[
                 Container(
                   width: 2,
-                  height: 40,
+                  height: isSmallScreen ? 35 : 40,
                   color: isCompleted ? step.color : Colors.grey[300],
                 ),
               ],
             ],
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: isSmallScreen ? 12 : 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -593,7 +632,7 @@ class _AppointmentTrackerState extends State<AppointmentTracker> {
                       child: Text(
                         step.title,
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: isSmallScreen ? 14 : 16,
                           fontWeight:
                               isCurrent ? FontWeight.bold : FontWeight.w500,
                           color: isCurrent ? step.color : null,
@@ -604,8 +643,10 @@ class _AppointmentTrackerState extends State<AppointmentTracker> {
                         _currentAppointment!.status != 'rejected' &&
                         _currentAppointment!.status != 'cancelled') ...[
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isSmallScreen ? 6 : 8,
+                          vertical: isSmallScreen ? 2 : 4,
+                        ),
                         decoration: BoxDecoration(
                           color: step.color.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
@@ -613,7 +654,7 @@ class _AppointmentTrackerState extends State<AppointmentTracker> {
                         child: Text(
                           'En cours',
                           style: TextStyle(
-                            fontSize: 10,
+                            fontSize: isSmallScreen ? 9 : 10,
                             color: step.color,
                             fontWeight: FontWeight.bold,
                           ),
@@ -626,7 +667,7 @@ class _AppointmentTrackerState extends State<AppointmentTracker> {
                 Text(
                   step.description,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: isSmallScreen ? 12 : 14,
                     color: Colors.grey[600],
                   ),
                 ),
@@ -637,7 +678,7 @@ class _AppointmentTrackerState extends State<AppointmentTracker> {
                   Text(
                     'Temps estimé: ${_getEstimatedTime(index)}',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: isSmallScreen ? 11 : 12,
                       color: Colors.blue[700],
                       fontWeight: FontWeight.w500,
                     ),
@@ -651,88 +692,66 @@ class _AppointmentTrackerState extends State<AppointmentTracker> {
     );
   }
 
-  Widget _buildAppointmentDetails() {
+  Widget _buildAppointmentDetails(bool isSmallScreen) {
     return Card(
       elevation: 2,
+      margin: EdgeInsets.symmetric(horizontal: isSmallScreen ? 4 : 0),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Détails du rendez-vous',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: isSmallScreen ? 15 : 16,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 12),
-            _buildDetailRow(
-              Icons.person,
-              'Client',
-              _currentAppointment!.clientName,
-            ),
-            _buildDetailRow(
-              Icons.phone,
-              'Téléphone',
-              _currentAppointment!.clientPhone,
-            ),
-            _buildDetailRow(
-              Icons.email,
-              'Email',
-              _currentAppointment!.clientEmail,
-            ),
-            _buildDetailRow(
-              Icons.build,
-              'Service',
-              _currentAppointment!.service,
-            ),
+            _buildDetailRow(Icons.person, 'Client',
+                _currentAppointment!.clientName, isSmallScreen),
+            _buildDetailRow(Icons.phone, 'Téléphone',
+                _currentAppointment!.clientPhone, isSmallScreen),
+            _buildDetailRow(Icons.email, 'Email',
+                _currentAppointment!.clientEmail, isSmallScreen),
+            _buildDetailRow(Icons.build, 'Service',
+                _currentAppointment!.service, isSmallScreen),
             if (_currentAppointment!.vehicle != null)
-              _buildDetailRow(
-                Icons.directions_car,
-                'Véhicule',
-                _currentAppointment!.vehicle!,
-              ),
+              _buildDetailRow(Icons.directions_car, 'Véhicule',
+                  _currentAppointment!.vehicle!, isSmallScreen),
             if (_currentAppointment!.assignedTechnicianName != null)
-              _buildDetailRow(
-                Icons.engineering,
-                'Technicien',
-                _currentAppointment!.assignedTechnicianName!,
-              ),
-            _buildDetailRow(
-              Icons.calendar_today,
-              'Date et heure',
-              _getFormattedDate(),
-            ),
+              _buildDetailRow(Icons.engineering, 'Technicien',
+                  _currentAppointment!.assignedTechnicianName!, isSmallScreen),
+            _buildDetailRow(Icons.calendar_today, 'Date et heure',
+                _getFormattedDate(), isSmallScreen),
             if (_currentAppointment!.notes != null &&
                 _currentAppointment!.notes!.isNotEmpty)
-              _buildDetailRow(
-                Icons.note,
-                'Notes',
-                _currentAppointment!.notes!,
-              ),
+              _buildDetailRow(Icons.note, 'Notes', _currentAppointment!.notes!,
+                  isSmallScreen),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String label, String value) {
+  Widget _buildDetailRow(
+      IconData icon, String label, String value, bool isSmallScreen) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: Colors.blue[700]),
-          const SizedBox(width: 12),
+          Icon(icon, size: isSmallScreen ? 16 : 18, color: Colors.blue[700]),
+          SizedBox(width: isSmallScreen ? 8 : 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
-                    fontSize: 12,
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 11 : 12,
                     color: Colors.grey,
                     fontWeight: FontWeight.w500,
                   ),
@@ -740,8 +759,8 @@ class _AppointmentTrackerState extends State<AppointmentTracker> {
                 const SizedBox(height: 2),
                 Text(
                   value,
-                  style: const TextStyle(
-                    fontSize: 14,
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 13 : 14,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -753,23 +772,25 @@ class _AppointmentTrackerState extends State<AppointmentTracker> {
     );
   }
 
-  Widget _buildQuickContact() {
+  Widget _buildQuickContact(bool isSmallScreen) {
     return Card(
       elevation: 2,
+      margin: EdgeInsets.symmetric(horizontal: isSmallScreen ? 4 : 0),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
         child: Row(
           children: [
-            Icon(Icons.support_agent, size: 24, color: Colors.green[700]),
-            const SizedBox(width: 12),
+            Icon(Icons.support_agent,
+                size: isSmallScreen ? 20 : 24, color: Colors.green[700]),
+            SizedBox(width: isSmallScreen ? 8 : 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Besoin d\'aide ?',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: isSmallScreen ? 14 : 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -780,20 +801,26 @@ class _AppointmentTrackerState extends State<AppointmentTracker> {
                         ? 'Contactez le garage pour comprendre la situation'
                         : 'Contactez directement le garage',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: isSmallScreen ? 12 : 14,
                       color: Colors.grey[600],
                     ),
                   ),
                 ],
               ),
             ),
+            SizedBox(width: isSmallScreen ? 8 : 12),
             ElevatedButton.icon(
               onPressed: _openChat,
-              icon: const Icon(Icons.chat, size: 18),
-              label: const Text('Chat'),
+              icon: Icon(Icons.chat, size: isSmallScreen ? 16 : 18),
+              label: Text('Chat',
+                  style: TextStyle(fontSize: isSmallScreen ? 12 : 14)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isSmallScreen ? 12 : 16,
+                  vertical: isSmallScreen ? 8 : 12,
+                ),
               ),
             ),
           ],
@@ -859,17 +886,17 @@ class _AppointmentTrackerState extends State<AppointmentTracker> {
   String _getEstimatedTime(int stepIndex) {
     switch (stepIndex) {
       case 0:
-        return 'En attente de confirmation';
+        return '1-24 heures';
       case 1:
         return 'Immédiat';
       case 2:
-        return '15-30 minutes';
+        return '30-60 minutes';
       case 3:
-        return '30-45 minutes';
+        return '1-2 heures';
       case 4:
-        return '1-3 heures';
+        return '2-8 heures';
       case 5:
-        return '20-30 minutes';
+        return '30-60 minutes';
       case 6:
         return 'Terminé';
       default:
