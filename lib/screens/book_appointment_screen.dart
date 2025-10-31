@@ -603,6 +603,8 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     }
   }
 
+  // Dans BookAppointmentScreen - MODIFIER la méthode _bookAppointment
+
   void _bookAppointment() async {
     if (_formKey.currentState!.validate()) {
       // Combiner date et heure
@@ -619,7 +621,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
       // Créer le rendez-vous
       final appointment = Appointment(
-        id: appointmentId, // MAINTENANT FIXE
+        id: appointmentId,
         clientId: 'client_${widget.clientEmail}',
         clientName: widget.clientName,
         clientEmail: widget.clientEmail,
@@ -647,10 +649,21 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
         String successMessage =
             'Rendez-vous confirmé pour le ${_getFormattedDate(appointmentDateTime)} à ${_selectedTime.format(context)}!';
 
-        // Ajouter une mention spéciale si un technicien est sélectionné
+        // NOTIFIER LE TECHNICIEN SI UN TECHNICIEN EST SÉLECTIONNÉ
         if (_selectedTechnician != null) {
           successMessage +=
               '\nTechnicien assigné : ${_selectedTechnician!.name} (${_selectedTechnician!.expertiseLevel})';
+
+          // ENVOYER LA NOTIFICATION AU TECHNICIEN
+          try {
+            await _appointmentService.assignTechnicianToAppointment(
+              appointmentId,
+              _selectedTechnician!.id,
+            );
+          } catch (e) {
+            print('❌ Erreur notification technicien: $e');
+            // Ne pas bloquer le processus principal en cas d'erreur de notification
+          }
         }
 
         // Ajouter la mention du garage

@@ -2,13 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/appointment_model.dart';
 import 'notification_service.dart';
 import 'loyalty_service.dart';
+import 'technician_service.dart'; // AJOUT: Import pour les techniciens
 
 class AppointmentService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final NotificationService _notificationService;
   LoyaltyService? _loyaltyService;
 
-  // MODIFIER le constructeur pour injecter NotificationService
   AppointmentService({
     LoyaltyService? loyaltyService,
     required NotificationService notificationService,
@@ -39,6 +39,50 @@ class AppointmentService {
     }
   }
 
+  // NOUVELLE MÉTHODE : Assigner un technicien avec notification
+  Future<void> assignTechnicianToAppointment(
+    String appointmentId,
+    String technicianId,
+  ) async {
+    try {
+      // Récupérer les informations du technicien
+      final technicianService = TechnicianService();
+      final technician =
+          await technicianService.getTechnicianById(technicianId);
+
+      if (technician == null) {
+        throw Exception('Technicien non trouvé');
+      }
+
+      // Mettre à jour le rendez-vous avec l'ID du technicien
+      await _firestore.collection('appointments').doc(appointmentId).update({
+        'assignedTechnicianId': technicianId,
+        'assignedTechnicianName': technician.name,
+        'assignedTechnicianSpecialty': technician.specialty,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // Envoyer la notification au technicien
+      final appointment = await getAppointment(appointmentId);
+      if (appointment != null) {
+        await _notificationService.sendTechnicianAssignmentNotification(
+          technicianEmail: technician.email,
+          technicianName: technician.name,
+          clientName: appointment.clientName,
+          service: appointment.service,
+          dateTime: appointment.dateTime,
+          appointmentId: appointmentId,
+        );
+      }
+
+      print(
+          '✅ Technicien ${technician.name} assigné au rendez-vous $appointmentId');
+    } catch (e) {
+      print('❌ Erreur assignation technicien: $e');
+      throw e;
+    }
+  }
+
   // NOUVELLE MÉTHODE : Vérifier si un changement de statut est autorisé
   bool isStatusChangeAllowed(String currentStatus, String newStatus) {
     // Définir l'ordre du workflow (unidirectionnel)
@@ -64,7 +108,7 @@ class AppointmentService {
     return newStatus == 'cancelled' || newStatus == 'rejected';
   }
 
-  // METTRE À JOUR : Mettre à jour le statut avec validation
+  // METTRE À JOUR : Mettre à jour le statut avec validation et notifications améliorées
   Future<void> updateAppointmentStatus(
       String appointmentId, String newStatus) async {
     try {
@@ -107,30 +151,56 @@ class AppointmentService {
     }
   }
 
-  // NOUVELLE MÉTHODE : Envoyer les notifications de statut
+  // METTRE À JOUR : Envoyer les notifications de statut avec notifications techniciens
   Future<void> _sendStatusNotifications(
       Appointment appointment, String newStatus) async {
-    // NOTIFICATION AVEC EMAIL
-    await _notificationService.sendStatusUpdate(
-      appointment.clientName,
-      appointment.service,
-      newStatus,
-      clientEmail: appointment.clientEmail, // AJOUTER l'email
-    );
+    try {
+      // NOTIFICATION CLIENT AVEC EMAIL
+      await _notificationService.sendStatusUpdate(
+        appointment.clientName,
+        appointment.service,
+        newStatus,
+        clientEmail: appointment.clientEmail,
+      );
 
-    // Système de fidélité pour les RDV complétés
-    if (newStatus == 'completed' && _loyaltyService != null) {
-      print('🎯 DÉCLENCHEMENT FIDÉLITÉ AUTO pour: ${appointment.clientName}');
-      await _loyaltyService!.awardPointsForAppointment(appointment);
-    }
+      // NOTIFICATION TECHNICIEN si un technicien est assigné
+      if (appointment.assignedTechnicianId != null &&
+          appointment.assignedTechnicianId!.isNotEmpty) {
+        final technicianService = TechnicianService();
+        final technician = await technicianService
+            .getTechnicianById(appointment.assignedTechnicianId!);
 
-    if (newStatus == 'confirmed') {
-      await _scheduleReminder(appointment);
-    }
+        if (technician != null) {
+          await _notificationService.sendAppointmentUpdateToTechnician(
+            technicianEmail: technician.email,
+            technicianName: technician.name,
+            clientName: appointment.clientName,
+            service: appointment.service,
+            status: newStatus,
+            dateTime: appointment.dateTime,
+            appointmentId: appointment.id!,
+          );
+        }
+      }
 
-    // PROGRAMMER LES RAPPELS DE SUIVI APRÈS RDV
-    if (newStatus == 'completed') {
-      await _scheduleFollowUpReminders(appointment);
+      // Système de fidélité pour les RDV complétés
+      if (newStatus == 'completed' && _loyaltyService != null) {
+        print('🎯 DÉCLENCHEMENT FIDÉLITÉ AUTO pour: ${appointment.clientName}');
+        await _loyaltyService!.awardPointsForAppointment(appointment);
+      }
+
+      // Programmer les rappels pour les RDV confirmés
+      if (newStatus == 'confirmed') {
+        await _scheduleReminder(appointment);
+      }
+
+      // PROGRAMMER LES RAPPELS DE SUIVI APRÈS RDV
+      if (newStatus == 'completed') {
+        await _scheduleFollowUpReminders(appointment);
+      }
+    } catch (e) {
+      print('❌ Erreur envoi notifications: $e');
+      // Ne pas bloquer le processus principal en cas d'erreur de notification
     }
   }
 
@@ -229,13 +299,32 @@ class AppointmentService {
       // PROGRAMMER LES RAPPELS AVANCÉS
       await _scheduleAdvancedReminders(appointmentWithId);
 
-      // METTRE À JOUR : Ajouter l'email dans la notification
+      // NOTIFICATION DE CONFIRMATION AU CLIENT
       await _notificationService.sendAppointmentConfirmation(
         appointment.clientName,
         appointment.service,
         appointment.dateTime,
-        clientEmail: appointment.clientEmail, // AJOUTER
+        clientEmail: appointment.clientEmail,
       );
+
+      // NOTIFICATION AU TECHNICIEN SI UN TECHNICIEN EST ASSIGNÉ DÈS LA CRÉATION
+      if (appointment.assignedTechnicianId != null &&
+          appointment.assignedTechnicianId!.isNotEmpty) {
+        final technicianService = TechnicianService();
+        final technician = await technicianService
+            .getTechnicianById(appointment.assignedTechnicianId!);
+
+        if (technician != null) {
+          await _notificationService.sendTechnicianAssignmentNotification(
+            technicianEmail: technician.email,
+            technicianName: technician.name,
+            clientName: appointment.clientName,
+            service: appointment.service,
+            dateTime: appointment.dateTime,
+            appointmentId: appointmentWithId.id!,
+          );
+        }
+      }
 
       print(
           '✅ RENDEZ-VOUS AJOUTÉ: ${appointment.clientName} - ${appointment.service}');
@@ -264,8 +353,8 @@ class AppointmentService {
             'type': 'appointment_reminder_24h',
             'appointmentId': appointment.id!,
           },
-          clientEmail: appointment.clientEmail, // AJOUTER
-          clientName: appointment.clientName, // AJOUTER
+          clientEmail: appointment.clientEmail,
+          clientName: appointment.clientName,
         );
         print('⏰ Rappel 24h programmé pour: ${appointment.clientName}');
       }
@@ -282,8 +371,8 @@ class AppointmentService {
             'type': 'appointment_reminder_2h',
             'appointmentId': appointment.id!,
           },
-          clientEmail: appointment.clientEmail, // AJOUTER
-          clientName: appointment.clientName, // AJOUTER
+          clientEmail: appointment.clientEmail,
+          clientName: appointment.clientName,
         );
         print('⏰ Rappel 2h programmé pour: ${appointment.clientName}');
       }
@@ -300,8 +389,8 @@ class AppointmentService {
             'type': 'traffic_alert',
             'appointmentId': appointment.id!,
           },
-          clientEmail: appointment.clientEmail, // AJOUTER
-          clientName: appointment.clientName, // AJOUTER
+          clientEmail: appointment.clientEmail,
+          clientName: appointment.clientName,
         );
         print('🚗 Alerte trafic programmée pour: ${appointment.clientName}');
       }
@@ -318,8 +407,8 @@ class AppointmentService {
             'type': 'preparation_reminder',
             'appointmentId': appointment.id!,
           },
-          clientEmail: appointment.clientEmail, // AJOUTER
-          clientName: appointment.clientName, // AJOUTER
+          clientEmail: appointment.clientEmail,
+          clientName: appointment.clientName,
         );
       }
     } catch (e) {
@@ -420,8 +509,8 @@ class AppointmentService {
             'type': 'feedback_reminder',
             'appointmentId': appointment.id!,
           },
-          clientEmail: appointment.clientEmail, // AJOUTER
-          clientName: appointment.clientName, // AJOUTER
+          clientEmail: appointment.clientEmail,
+          clientName: appointment.clientName,
         );
       }
 
@@ -437,8 +526,8 @@ class AppointmentService {
             'type': 'maintenance_reminder',
             'appointmentId': appointment.id!,
           },
-          clientEmail: appointment.clientEmail, // AJOUTER
-          clientName: appointment.clientName, // AJOUTER
+          clientEmail: appointment.clientEmail,
+          clientName: appointment.clientName,
         );
       }
     } catch (e) {
@@ -467,12 +556,11 @@ class AppointmentService {
     final reminderDate = appointment.dateTime.subtract(const Duration(days: 1));
     if (reminderDate.isAfter(DateTime.now())) {
       print('⏰ RAPPEL PROGRAMMÉ pour: ${appointment.clientName}');
-      // METTRE À JOUR : Ajouter l'email dans le rappel
       await _notificationService.sendReminder(
         appointment.clientName,
         appointment.service,
         appointment.dateTime,
-        clientEmail: appointment.clientEmail, // AJOUTER
+        clientEmail: appointment.clientEmail,
       );
     }
   }

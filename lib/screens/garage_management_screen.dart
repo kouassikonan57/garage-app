@@ -241,13 +241,11 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
 
     if (selectedTechnician != null) {
       try {
-        final updatedAppointment = appointment.copyWith(
-          assignedTechnicianId: selectedTechnician!.id,
-          assignedTechnicianName: selectedTechnician!.name,
-          assignedTechnicianSpecialty: selectedTechnician!.specialty,
+        // UTILISER LA NOUVELLE MÉTHODE D'ASSIGNATION QUI ENVOIE LA NOTIFICATION
+        await _appointmentService.assignTechnicianToAppointment(
+          appointment.id!,
+          selectedTechnician!.id,
         );
-
-        await _appointmentService.updateAppointment(updatedAppointment);
 
         await _technicianService.toggleTechnicianAvailability(
             selectedTechnician!.id, false);
@@ -258,7 +256,8 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('${selectedTechnician!.name} assigné au RDV'),
+              content: Text(
+                  '${selectedTechnician!.name} assigné au RDV - Notification envoyée'),
               backgroundColor: Colors.green,
             ),
           );
@@ -267,8 +266,8 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
         print('❌ Erreur assignation technicien: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Erreur lors de l\'assignation'),
+            SnackBar(
+              content: Text('Erreur lors de l\'assignation: $e'),
               backgroundColor: Colors.red,
             ),
           );
@@ -443,6 +442,7 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
     }
   }
 
+  // CORRECTION: Utiliser la méthode du service pour l'affichage cohérent
   String _getStatusText(String status) {
     return _appointmentService.getStatusDisplayText(status);
   }
@@ -535,7 +535,7 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
                           foregroundColor: Colors.white,
                           minimumSize: const Size(double.infinity, 48),
                         ),
-                        child: Text(appointment.nextStatusText),
+                        child: Text(_getNextStatusText(appointment.status)),
                       ),
                     ],
                   ),
@@ -571,6 +571,24 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
         ],
       ),
     );
+  }
+
+  // NOUVELLE MÉTHODE: Obtenir le texte du prochain statut
+  String _getNextStatusText(String currentStatus) {
+    switch (currentStatus) {
+      case 'confirmed':
+        return 'Commencer la préparation';
+      case 'in_progress':
+        return 'Démarrer le diagnostic';
+      case 'diagnostic':
+        return 'Commencer la réparation';
+      case 'repair':
+        return 'Contrôle qualité';
+      case 'quality_check':
+        return 'Marquer comme terminé';
+      default:
+        return 'Terminer';
+    }
   }
 
   Widget _buildDetailRow(String label, String value) {
@@ -919,7 +937,7 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
                     minimumSize: const Size(0, 0),
                   ),
                   child: Text(
-                    appointment.nextStatusText,
+                    _getNextStatusText(appointment.status),
                     style: const TextStyle(fontSize: 12),
                     textAlign: TextAlign.center,
                   ),
@@ -985,7 +1003,7 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
                       Icon(Icons.arrow_forward,
                           color: _getStatusColor(appointment.nextStatus)),
                       const SizedBox(width: 8),
-                      Text('${appointment.nextStatusText} →'),
+                      Text('${_getNextStatusText(appointment.status)} →'),
                     ],
                   ),
                 ),

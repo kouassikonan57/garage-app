@@ -8,7 +8,8 @@ class TechnicianService {
   Future<List<Technician>> getTechnicians(String garageId) async {
     try {
       final querySnapshot = await _firestore
-          .collection('technicians') // ⬅️ CORRIGÉ : 'technicians'
+          .collection(
+              'technicians') // ⬅️ CORRIGÉ : 'technicians' au lieu de 'techniciens'
           .where('garageId', isEqualTo: garageId)
           .orderBy('name')
           .get();
@@ -26,9 +27,9 @@ class TechnicianService {
   Future<Technician?> getTechnicianById(String technicianId) async {
     try {
       final doc = await _firestore
-          .collection('technicians')
+          .collection('technicians') // ⬅️ CORRIGÉ
           .doc(technicianId)
-          .get(); // ⬅️ CORRIGÉ
+          .get();
       if (doc.exists) {
         return Technician.fromFirestore(doc);
       }
@@ -95,19 +96,21 @@ class TechnicianService {
     }
   }
 
+
   // Supprimer un technicien
   Future<void> deleteTechnician(String technicianId) async {
     try {
       await _firestore
-          .collection('technicians')
+          .collection('technicians') // ⬅️ CORRIGÉ
           .doc(technicianId)
-          .delete(); // ⬅️ CORRIGÉ
+          .delete();
       print('✅ Technicien supprimé: $technicianId');
     } catch (e) {
       print('❌ Erreur suppression technicien: $e');
       throw e;
     }
   }
+
 
   // Changer la disponibilité d'un technicien
   Future<void> toggleTechnicianAvailability(
@@ -125,6 +128,7 @@ class TechnicianService {
       throw e;
     }
   }
+
 
   // Écouter les changements en temps réel
   Stream<List<Technician>> streamTechnicians(String garageId) {

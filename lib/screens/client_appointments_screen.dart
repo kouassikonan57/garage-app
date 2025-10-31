@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import '../services/appointment_service.dart';
 import '../models/appointment_model.dart';
-import '../services/service_provider.dart'; // AJOUT
+import '../services/service_provider.dart';
 
 class ClientAppointmentsScreen extends StatefulWidget {
   final String clientEmail;
 
   const ClientAppointmentsScreen({
-    // SUPPRIMER appointmentService
     super.key,
     required this.clientEmail,
   });
@@ -18,14 +17,14 @@ class ClientAppointmentsScreen extends StatefulWidget {
 }
 
 class _ClientAppointmentsScreenState extends State<ClientAppointmentsScreen> {
-  late final AppointmentService _appointmentService; // MODIFIER
+  late final AppointmentService _appointmentService;
   List<Appointment> _appointments = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _appointmentService = ServiceProvider().appointmentService; // MODIFIER
+    _appointmentService = ServiceProvider().appointmentService;
     _loadAppointments();
   }
 
@@ -49,24 +48,28 @@ class _ClientAppointmentsScreenState extends State<ClientAppointmentsScreen> {
         return Colors.orange;
       case 'confirmed':
         return Colors.green;
+      case 'in_progress':
+        return Colors.blue;
+      case 'diagnostic':
+        return Colors.blue;
+      case 'repair':
+        return Colors.blue;
+      case 'quality_check':
+        return Colors.purple;
+      case 'completed':
+        return Colors.green;
       case 'cancelled':
+        return Colors.red;
+      case 'rejected':
         return Colors.red;
       default:
         return Colors.grey;
     }
   }
 
+  // CORRECTION: Utiliser la méthode du service pour l'affichage cohérent
   String _getStatusText(String status) {
-    switch (status) {
-      case 'pending':
-        return 'En attente de confirmation';
-      case 'confirmed':
-        return 'Confirmé';
-      case 'cancelled':
-        return 'Annulé';
-      default:
-        return status;
-    }
+    return _appointmentService.getStatusDisplayText(status);
   }
 
   @override

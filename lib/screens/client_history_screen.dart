@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import '../services/appointment_service.dart';
 import '../models/appointment_model.dart';
-import '../services/service_provider.dart'; // AJOUT
+import '../services/service_provider.dart';
 
 class ClientHistoryScreen extends StatefulWidget {
   final String clientEmail;
 
   const ClientHistoryScreen({
-    // SUPPRIMER appointmentService
     super.key,
     required this.clientEmail,
   });
@@ -17,21 +16,21 @@ class ClientHistoryScreen extends StatefulWidget {
 }
 
 class _ClientHistoryScreenState extends State<ClientHistoryScreen> {
-  late final AppointmentService _appointmentService; // MODIFIER
+  late final AppointmentService _appointmentService;
   List<Appointment> _pastAppointments = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _appointmentService = ServiceProvider().appointmentService; // MODIFIER
+    _appointmentService = ServiceProvider().appointmentService;
     _loadHistory();
   }
 
   void _loadHistory() async {
-    final clientId = 'client_${widget.clientEmail}';
+    // CORRECTION: Utiliser directement l'email comme dans client_appointments_screen
     final allAppointments =
-        await _appointmentService.getClientAppointments(clientId);
+        await _appointmentService.getClientAppointments(widget.clientEmail);
 
     final now = DateTime.now();
     final pastAppointments =
@@ -44,6 +43,36 @@ class _ClientHistoryScreenState extends State<ClientHistoryScreen> {
       _pastAppointments = pastAppointments;
       _isLoading = false;
     });
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'pending':
+        return Colors.orange;
+      case 'confirmed':
+        return Colors.green;
+      case 'in_progress':
+        return Colors.blue;
+      case 'diagnostic':
+        return Colors.blue;
+      case 'repair':
+        return Colors.blue;
+      case 'quality_check':
+        return Colors.purple;
+      case 'completed':
+        return Colors.green;
+      case 'cancelled':
+        return Colors.red;
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  // CORRECTION: Utiliser la méthode du service pour l'affichage cohérent
+  String _getStatusText(String status) {
+    return _appointmentService.getStatusDisplayText(status);
   }
 
   @override
@@ -88,7 +117,7 @@ class _ClientHistoryScreenState extends State<ClientHistoryScreen> {
                               _pastAppointments.length.toString(), 'Total'),
                           _buildHistoryStat(
                               _pastAppointments
-                                  .where((a) => a.status == 'confirmed')
+                                  .where((a) => a.status == 'completed')
                                   .length
                                   .toString(),
                               'Terminés'),
@@ -175,34 +204,22 @@ class _ClientHistoryScreenState extends State<ClientHistoryScreen> {
 
   Widget _getStatusIcon(String status) {
     switch (status) {
-      case 'confirmed':
+      case 'completed':
         return const Icon(Icons.check_circle, color: Colors.green, size: 30);
       case 'cancelled':
         return const Icon(Icons.cancel, color: Colors.red, size: 30);
+      case 'quality_check':
+        return const Icon(Icons.verified, color: Colors.purple, size: 30);
+      case 'repair':
+        return const Icon(Icons.build, color: Colors.blue, size: 30);
+      case 'diagnostic':
+        return const Icon(Icons.search, color: Colors.blue, size: 30);
+      case 'in_progress':
+        return const Icon(Icons.build_circle, color: Colors.blue, size: 30);
+      case 'confirmed':
+        return const Icon(Icons.check_circle, color: Colors.green, size: 30);
       default:
         return const Icon(Icons.pending, color: Colors.orange, size: 30);
-    }
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'confirmed':
-        return Colors.green;
-      case 'cancelled':
-        return Colors.red;
-      default:
-        return Colors.orange;
-    }
-  }
-
-  String _getStatusText(String status) {
-    switch (status) {
-      case 'confirmed':
-        return 'Terminé';
-      case 'cancelled':
-        return 'Annulé';
-      default:
-        return 'En attente';
     }
   }
 

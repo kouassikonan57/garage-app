@@ -269,4 +269,108 @@ L'équipe Garage
         return 'Statut mis à jour.';
     }
   }
+
+  // Dans NotificationService - AJOUTER ces méthodes
+
+  Future<void> sendTechnicianAssignmentNotification({
+    required String technicianEmail,
+    required String technicianName,
+    required String clientName,
+    required String service,
+    required DateTime dateTime,
+    required String appointmentId,
+  }) async {
+    final subject = '📋 Nouveau rendez-vous assigné - $clientName';
+    final body = '''
+Bonjour $technicianName,
+
+Un nouveau rendez-vous vous a été assigné.
+
+Détails du rendez-vous:
+👤 Client: $clientName
+🔧 Service: $service
+📅 Date: ${_formatDate(dateTime)}
+⏰ Heure: ${_formatTime(dateTime)}
+🆔 Référence: $appointmentId
+
+Merci de vous préparer pour ce rendez-vous !
+
+L'équipe Garage
+''';
+
+    if (technicianEmail.contains('@')) {
+      await sendEmailNotification(
+        toEmail: technicianEmail,
+        subject: subject,
+        body: body,
+        clientName: technicianName,
+      );
+    }
+
+    print('🔔 Notification assignation technicien envoyée à: $technicianName');
+  }
+
+  Future<void> sendAppointmentUpdateToTechnician({
+    required String technicianEmail,
+    required String technicianName,
+    required String clientName,
+    required String service,
+    required String status,
+    required DateTime dateTime,
+    required String appointmentId,
+  }) async {
+    final statusText = _getStatusText(status);
+    final subject = '🔄 Mise à jour rendez-vous - $statusText';
+    final body = '''
+Bonjour $technicianName,
+
+Le rendez-vous pour $clientName a été mis à jour.
+
+Détails:
+👤 Client: $clientName
+🔧 Service: $service
+📅 Date: ${_formatDate(dateTime)}
+⏰ Heure: ${_formatTime(dateTime)}
+🔄 Statut: $statusText
+🆔 Référence: $appointmentId
+
+${_getTechnicianStatusMessage(status)}
+
+L'équipe Garage
+''';
+
+    if (technicianEmail.contains('@')) {
+      await sendEmailNotification(
+        toEmail: technicianEmail,
+        subject: subject,
+        body: body,
+        clientName: technicianName,
+      );
+    }
+
+    print('🔄 Notification mise à jour technicien envoyée à: $technicianName');
+  }
+
+  String _getTechnicianStatusMessage(String status) {
+    switch (status) {
+      case 'confirmed':
+        return 'Le rendez-vous a été confirmé par le client.';
+      case 'in_progress':
+        return 'Le véhicule est en cours de préparation.';
+      case 'diagnostic':
+        return 'Veuillez procéder au diagnostic du véhicule.';
+      case 'repair':
+        return 'La réparation du véhicule est en cours.';
+      case 'quality_check':
+        return 'Veuillez effectuer le contrôle qualité final.';
+      case 'completed':
+        return 'Le rendez-vous est terminé. Merci pour votre travail !';
+      case 'cancelled':
+        return 'Le rendez-vous a été annulé.';
+      case 'rejected':
+        return 'Le rendez-vous a été refusé.';
+      default:
+        return 'Statut mis à jour.';
+    }
+  }
 }
