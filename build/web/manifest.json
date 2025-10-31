@@ -1,0 +1,51 @@
+{
+  "name": "Yadi Car Center - Garage Auto",
+  "short_name": "Yadi Car Center",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFF3E0",
+  "theme_color": "#FF9800",
+  "description": "Garage Auto Yadi Car Center - Service de qualité en Côte d'Ivoire. Prise de rendez-vous, suivi des réparations et services automobiles.",
+  "orientation": "any",
+  "prefer_related_applications": false,
+  "categories": ["auto", "business", "productivity"],
+  "lang": "fr-CI",
+  "icons": [
+    {
+      "src": "icons/Icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/Icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/Icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/Icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshots/mobile.png",
+      "sizes": "360x640",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "screenshots/desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ]
+}

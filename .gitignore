@@ -18,9 +18,7 @@ migrate_working_dir/
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
+# VS Code
 #.vscode/
 
 # Flutter/Dart/Pub related
@@ -30,7 +28,11 @@ migrate_working_dir/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
-/build/
+# On ignore tout le build sauf le dossier web
+/build/*
+!/build/web/
+!/build/web/**
+
 /coverage/
 .packages
 pubspec.lock
@@ -50,4 +52,3 @@ app.*.map.json
 # IDE
 *.iml
 .idea/
-.vercel
