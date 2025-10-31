@@ -17,18 +17,194 @@ import 'models/user_model.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialiser Firebase (Auth seulement)
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  // Afficher l'écran de chargement immédiatement
+  runApp(const LoadingApp());
 
-  print('✅ Firebase Auth initialisé');
+  // Initialisations asynchrones
+  await _initializeApp();
 
-  // Initialiser le système de rappels avancés
-  await AdvancedReminderService.initialize();
-  await FirebaseMessagingService.initialize();
-
+  // Lancer l'application principale une fois tout initialisé
   runApp(const MyApp());
+}
+
+Future<void> _initializeApp() async {
+  try {
+    print('🚀 Démarrage de l\'application...');
+
+    // Initialiser Firebase
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print('✅ Firebase Auth initialisé');
+
+    // Initialiser le système de rappels avancés
+    await AdvancedReminderService.initialize();
+    print('✅ Rappels avancés initialisés');
+
+    // Initialiser la messagerie Firebase
+    await FirebaseMessagingService.initialize();
+    print('✅ Messagerie Firebase initialisée');
+
+    // Simuler un temps de chargement minimal pour une meilleure UX
+    await Future.delayed(const Duration(milliseconds: 1500));
+
+    print('🎯 Application prête !');
+  } catch (e) {
+    print('❌ Erreur lors de l\'initialisation: $e');
+  }
+}
+
+// Application temporaire pour l'écran de chargement
+class LoadingApp extends StatelessWidget {
+  const LoadingApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: const UnifiedLoadingScreen(),
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primaryColor: Colors.orange,
+        fontFamily: 'Roboto',
+      ),
+    );
+  }
+}
+
+// Écran de chargement unifié pour mobile et web
+class UnifiedLoadingScreen extends StatelessWidget {
+  const UnifiedLoadingScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.orange[50],
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Logo animé avec le même style que web
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: Colors.blueGrey[800],
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blueGrey.withOpacity(0.6),
+                    blurRadius: 20,
+                    spreadRadius: 3,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+                border: Border.all(
+                  color: Colors.white,
+                  width: 4,
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(60),
+                child: Image.asset(
+                  'assets/logo.png',
+                  fit: BoxFit.contain,
+                  width: 80,
+                  height: 80,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.orange, Colors.deepOrange],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.directions_car_filled,
+                        size: 40,
+                        color: Colors.white,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            )
+                .animate(onPlay: (controller) => controller.repeat())
+                .rotate(duration: 4000.ms, curve: Curves.easeInOut)
+                .animate(onPlay: (controller) => controller.repeat())
+                .scaleXY(duration: 2500.ms, begin: 0.85, end: 1.15),
+
+            const SizedBox(height: 30),
+
+            // Indicateur de chargement
+            const SizedBox(
+              width: 50,
+              height: 50,
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
+                strokeWidth: 4,
+              ),
+            )
+                .animate(onPlay: (controller) => controller.repeat())
+                .fadeIn(duration: 1000.ms)
+                .then(delay: 500.ms)
+                .shimmer(duration: 2000.ms),
+
+            const SizedBox(height: 20),
+
+            // Texte de chargement
+            const Text(
+              'Chargement Yadi Car Center...',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.orange,
+                fontFamily: 'Roboto',
+              ),
+            )
+                .animate()
+                .fadeIn(duration: 1200.ms, delay: 300.ms)
+                .slideY(begin: 0.5, end: 0, curve: Curves.easeOut),
+
+            const SizedBox(height: 10),
+
+            const Text(
+              'Service de qualité en Côte d\'Ivoire',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey,
+                fontWeight: FontWeight.w500,
+              ),
+            )
+                .animate()
+                .fadeIn(delay: 800.ms)
+                .slideY(begin: 0.3, end: 0, curve: Curves.easeOut),
+
+            const SizedBox(height: 20),
+
+            // Message de statut
+            FutureBuilder<void>(
+              future: Future.delayed(const Duration(seconds: 2)),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.done) {
+                  return const Text(
+                    'Préparation de votre expérience...',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ).animate().fadeIn(duration: 500.ms);
+                }
+                return const SizedBox();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -121,18 +297,43 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
 
   @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    // Attendre que tout soit initialisé
+    await Future.delayed(const Duration(milliseconds: 500));
+    setState(() {
+      _isInitialized = true;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (!_isInitialized) {
+      return const UnifiedLoadingScreen();
+    }
+
     final authService = Provider.of<SimpleAuthService>(context);
 
     return StreamBuilder<User?>(
       stream: authService.authStateChanges,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SplashScreen();
+          return const UnifiedLoadingScreen();
         }
 
         if (snapshot.hasData && snapshot.data != null) {
@@ -140,7 +341,7 @@ class AuthWrapper extends StatelessWidget {
             future: authService.getCurrentAppUser(),
             builder: (context, userSnapshot) {
               if (userSnapshot.connectionState == ConnectionState.waiting) {
-                return const SplashScreen();
+                return const UnifiedLoadingScreen();
               }
 
               final appUser = userSnapshot.data;
@@ -163,92 +364,7 @@ class AuthWrapper extends StatelessWidget {
   }
 }
 
-// Écran de chargement animé
-class SplashScreen extends StatelessWidget {
-  const SplashScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.orange[50],
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Logo animé avec fond sombre pour mieux contraster
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: Colors.blueGrey[800],
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.blueGrey.withOpacity(0.6),
-                    blurRadius: 20,
-                    spreadRadius: 3,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-                border: Border.all(
-                  color: Colors.white,
-                  width: 4,
-                ),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(60),
-                child: Image.asset(
-                  'assets/logo.png',
-                  fit: BoxFit.contain,
-                  width: 80,
-                  height: 80,
-                ),
-              ),
-            )
-                .animate(onPlay: (controller) => controller.repeat())
-                .rotate(duration: 4000.ms, curve: Curves.easeInOut)
-                .animate(onPlay: (controller) => controller.repeat())
-                .scaleXY(duration: 2500.ms, begin: 0.85, end: 1.15)
-                .then(delay: 500.ms)
-                .shimmer(duration: 2000.ms, delay: 1000.ms),
-
-            const SizedBox(height: 30),
-
-            // Titre avec animations améliorées
-            const Text(
-              'Garage Auto Yadi-Group',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.orange,
-                fontFamily: 'Roboto',
-                letterSpacing: 1.2,
-              ),
-            )
-                .animate()
-                .fadeIn(duration: 1200.ms, delay: 300.ms)
-                .slideY(begin: 0.8, end: 0, curve: Curves.elasticOut),
-
-            const SizedBox(height: 10),
-
-            const Text(
-              'Service de qualité en Côte d\'Ivoire',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
-                fontWeight: FontWeight.w500,
-              ),
-            )
-                .animate()
-                .fadeIn(delay: 800.ms)
-                .slideY(begin: 0.5, end: 0, curve: Curves.easeOut),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
+// Écran de bienvenue (ancien SplashScreen renommé)
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
 
