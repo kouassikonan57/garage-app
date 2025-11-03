@@ -3,9 +3,7 @@ const MANIFEST = 'flutter-app-manifest';
 const TEMP = 'flutter-temp-cache';
 const CACHE_NAME = 'flutter-app-cache';
 
-const RESOURCES = {".vercel/project.json": "84f8a20c357b7aa83bdf8ddb7d52cb10",
-".vercel/README.txt": "2b13c79d37d6ed82a3255b83b6815034",
-"assets/AssetManifest.bin": "90175bd55e88a1fc415e3ee67889efb9",
+const RESOURCES = {"assets/AssetManifest.bin": "90175bd55e88a1fc415e3ee67889efb9",
 "assets/AssetManifest.bin.json": "40e295c86f04060602e9c2ec2529e455",
 "assets/AssetManifest.json": "fb9a4f99240d7279fe038a80b97fe146",
 "assets/assets/logo.png": "dc07906be8496b6aceb4d4f26efeb984",
@@ -31,7 +29,7 @@ const RESOURCES = {".vercel/project.json": "84f8a20c357b7aa83bdf8ddb7d52cb10",
 "canvaskit/skwasm_heavy.wasm": "8034ad26ba2485dab2fd49bdd786837b",
 "favicon.ico": "941227ed52b68effb6b7c97adad407ed",
 "flutter.js": "888483df48293866f9f41d3d9274a779",
-"flutter_bootstrap.js": "61b9f4206c6684d674fcc97b3ae51fd3",
+"flutter_bootstrap.js": "3c29b75733a3b3f8bdf6e1d820b30793",
 "icons/apple-touch-icon.png": "faa122d3a7262123f761d752a08b5e8b",
 "icons/favicon-16x16.png": "84a38feb0fbf2a08f59527d6149f6495",
 "icons/favicon-32x32.png": "6c200696c59716e30ee9025f9b34b45c",
