@@ -29,7 +29,7 @@ const RESOURCES = {"assets/AssetManifest.bin": "90175bd55e88a1fc415e3ee67889efb9
 "canvaskit/skwasm_heavy.wasm": "8034ad26ba2485dab2fd49bdd786837b",
 "favicon.ico": "941227ed52b68effb6b7c97adad407ed",
 "flutter.js": "888483df48293866f9f41d3d9274a779",
-"flutter_bootstrap.js": "3c29b75733a3b3f8bdf6e1d820b30793",
+"flutter_bootstrap.js": "89e5062e6b9c5345e8953e727328ce2e",
 "icons/apple-touch-icon.png": "faa122d3a7262123f761d752a08b5e8b",
 "icons/favicon-16x16.png": "84a38feb0fbf2a08f59527d6149f6495",
 "icons/favicon-32x32.png": "6c200696c59716e30ee9025f9b34b45c",
