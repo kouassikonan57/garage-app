@@ -89,8 +89,8 @@ class HomeScreen extends StatelessWidget {
           // En-tête personnalisé
           _buildCustomHeader(context),
 
-          // Fil d'actualités avec images
-          _buildNewsFeedWithImages(),
+          // Fil d'actualités avec images - MAINTENANT CONDITIONNEL
+          _buildConditionalNewsFeed(),
 
           // Services principaux
           Expanded(
@@ -234,8 +234,8 @@ class HomeScreen extends StatelessWidget {
           // En-tête personnalisé
           _buildCustomHeader(context),
 
-          // Fil d'actualités avec images
-          _buildNewsFeedWithImages(),
+          // Fil d'actualités avec images - MAINTENANT CONDITIONNEL
+          _buildConditionalNewsFeed(),
 
           // Statistiques réelles
           _buildRealStats(context),
@@ -476,41 +476,51 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // Fil d'actualités avec défilement automatique et points de pagination
-  Widget _buildNewsFeedWithImages() {
-    final newsItems = [
-      {
-        'title': '🔧 Nouveau Service Express',
-        'subtitle': 'Révision complète en 45 minutes seulement !',
-        'image':
-            'https://images.unsplash.com/photo-1507136566006-cfc505b114fc?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-      },
-      {
-        'title': '🎉 Promotion Spéciale Été',
-        'subtitle': '20% de réduction sur la vidange jusqu\'au 30 décembre',
-        'image':
-            'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-      },
-      {
-        'title': '🚗 Maintenance Programmé',
-        'subtitle': 'Fermeture exceptionnelle le 25 décembre',
-        'image':
-            'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-      },
-      {
-        'title': '📱 Mise à Jour Application',
-        'subtitle': 'Nouvelle fonctionnalité : Suivi en temps réel',
-        'image':
-            'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-      },
-      {
-        'title': '🏆 Garage de l\'Année',
-        'subtitle': 'Nous sommes nominés pour le prix d\'excellence 2024',
-        'image':
-            'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?ixlib=rb-4.0.3&w=600&h=300&fit=crop',
-      },
-    ];
+  // NOUVELLE MÉTHODE : Fil d'actualités conditionnel
+  Widget _buildConditionalNewsFeed() {
+    // Pour tester sans actualités, remplacez par une liste vide :
+    // final newsItems = [];
 
+    final newsItems = <Map<String, String>>[]; // S'il doit avoir des actualité supprime ou commente cette ligne et active la ligne suivante
+    // final newsItems = [
+    //   {
+    //     'title': '🔧 Nouveau Service Express',
+    //     'subtitle': 'Révision complète en 45 minutes seulement !',
+    //     'image':
+    //         'https://images.unsplash.com/photo-1507136566006-cfc505b114fc?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+    //   },
+    //   {
+    //     'title': '🎉 Promotion Spéciale Été',
+    //     'subtitle': '20% de réduction sur la vidange jusqu\'au 30 décembre',
+    //     'image':
+    //         'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+    //   },
+    //   {
+    //     'title': '🚗 Maintenance Programmé',
+    //     'subtitle': 'Fermeture exceptionnelle le 25 décembre',
+    //     'image':
+    //         'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+    //   },
+    //   {
+    //     'title': '📱 Mise à Jour Application',
+    //     'subtitle': 'Nouvelle fonctionnalité : Suivi en temps réel',
+    //     'image':
+    //         'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+    //   },
+    //   {
+    //     'title': '🏆 Garage de l\'Année',
+    //     'subtitle': 'Nous sommes nominés pour le prix d\'excellence 2024',
+    //     'image':
+    //         'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?ixlib=rb-4.0.3&w=600&h=300&fit=crop',
+    //   },
+    // ];
+
+    // SI PAS D'ACTUALITÉS, RETOURNE UN WIDGET VIDE
+    if (newsItems.isEmpty) {
+      return const SizedBox.shrink(); // Disparaît complètement
+    }
+
+    // SINON, AFFICHE LE FIL D'ACTUALITÉS NORMAL
     return Container(
       height: 200,
       margin: const EdgeInsets.all(16),
@@ -529,8 +539,7 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: NewsCarousel(
-                newsItems: newsItems), // Utilisez la classe séparée
+            child: NewsCarousel(newsItems: newsItems),
           ),
         ],
       ),
