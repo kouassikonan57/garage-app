@@ -14,6 +14,42 @@ import 'services/advanced_reminder_service.dart';
 import 'services/firebase_client_service.dart';
 import 'models/user_model.dart';
 
+
+/// Widget qui limite la largeur maximale de l'application sur web
+class WebWidthLimiter extends StatelessWidget {
+  final Widget child;
+  final double maxWidth;
+
+  const WebWidthLimiter({
+    super.key,
+    required this.child,
+    this.maxWidth = 1200.0,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Sur mobile, on garde le comportement normal
+    if (!_isWeb()) {
+      return child;
+    }
+
+    // Sur web, on centre le contenu avec une largeur max
+    return Center(
+      child: Container(
+        constraints: BoxConstraints(
+          maxWidth: maxWidth,
+          minWidth: 300.0,
+        ),
+        child: child,
+      ),
+    );
+  }
+
+  bool _isWeb() {
+    return identical(0, 0.0);
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -253,38 +289,52 @@ class MyApp extends StatelessWidget {
               fontFamily: 'Roboto',
               useMaterial3: true,
             ),
-            home: const AuthWrapper(),
+            home: WebWidthLimiter(
+              // RETIRER 'const' ici
+              maxWidth: 1000.0,
+              child: const AuthWrapper(),
+            ),
             debugShowCheckedModeBanner: false,
             routes: {
-              '/garage-management': (context) => const GarageManagementScreen(),
+              '/garage-management': (context) => WebWidthLimiter(
+                    // RETIRER 'const' ici
+                    child: const GarageManagementScreen(),
+                  ),
             },
             onGenerateRoute: (settings) {
               switch (settings.name) {
                 case '/garage-management':
                   return MaterialPageRoute(
-                      builder: (context) => const GarageManagementScreen());
+                      builder: (context) => WebWidthLimiter(
+                            // RETIRER 'const' ici
+                            child: const GarageManagementScreen(),
+                          ));
                 default:
                   return null;
               }
             },
             onUnknownRoute: (settings) {
               return MaterialPageRoute(
-                builder: (context) => Scaffold(
-                  appBar: AppBar(title: const Text('Page non trouvée')),
-                  body: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline,
-                            size: 64, color: Colors.red),
-                        const SizedBox(height: 16),
-                        Text('Page non trouvée: ${settings.name}'),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Retour'),
-                        ),
-                      ],
+                builder: (context) => WebWidthLimiter(
+                  // RETIRER 'const' ici
+                  child: Scaffold(
+                    // RETIRER 'const' ici aussi
+                    appBar: AppBar(title: const Text('Page non trouvée')),
+                    body: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.error_outline,
+                              size: 64, color: Colors.red),
+                          const SizedBox(height: 16),
+                          Text('Page non trouvée: ${settings.name}'),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Retour'),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

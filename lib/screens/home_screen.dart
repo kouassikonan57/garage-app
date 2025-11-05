@@ -75,9 +75,16 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: isClient
-          ? _buildClientInterface(context)
-          : _buildGarageInterface(context),
+      body: Center(
+        // AJOUT: Centrer
+        child: Container(
+          // AJOUT: Container avec largeur max
+          constraints: const BoxConstraints(maxWidth: 1200.0),
+          child: isClient
+              ? _buildClientInterface(context)
+              : _buildGarageInterface(context),
+        ),
+      ),
     );
   }
 
