@@ -159,13 +159,19 @@ class _GarageDashboardState extends State<GarageDashboard> {
         title: const Text('Tableau de Bord Garage'),
         backgroundColor: Colors.blue,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadStats,
+          MouseRegion(
+            cursor: SystemMouseCursors.click, // CURSEUR MAIN AJOUTÉ
+            child: IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _loadStats,
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _logout,
+          MouseRegion(
+            cursor: SystemMouseCursors.click, // CURSEUR MAIN AJOUTÉ
+            child: IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: _logout,
+            ),
           ),
         ],
       ),
@@ -411,27 +417,32 @@ class _GarageDashboardState extends State<GarageDashboard> {
 
   Widget _buildActionButton(
       String text, IconData icon, Color color, VoidCallback onTap) {
-    return SizedBox(
-      width: 110,
-      child: Card(
-        elevation: 2,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, color: color, size: 30),
-                const SizedBox(height: 8),
-                Text(
-                  text,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontSize: 12, color: color, fontWeight: FontWeight.w500),
-                ),
-              ],
+    return MouseRegion(
+      cursor: SystemMouseCursors.click, // CURSEUR MAIN AJOUTÉ
+      child: SizedBox(
+        width: 110,
+        child: Card(
+          elevation: 2,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, color: color, size: 30),
+                  const SizedBox(height: 8),
+                  Text(
+                    text,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: color,
+                        fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

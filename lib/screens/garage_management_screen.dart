@@ -159,72 +159,75 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
             itemCount: _technicians.length,
             itemBuilder: (context, index) {
               final technician = _technicians[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(vertical: 4),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.orange[100],
-                    child: Text(
-                      technician.name.characters.first,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange,
+              return MouseRegion(
+                cursor: SystemMouseCursors.click, // CURSEUR MAIN AJOUTÉ
+                child: Card(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.orange[100],
+                      child: Text(
+                        technician.name.characters.first,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange,
+                        ),
                       ),
                     ),
-                  ),
-                  title: Text(
-                    technician.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        technician.specialty,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.star, color: Colors.amber, size: 16),
-                          const SizedBox(width: 4),
-                          Text('${technician.rating}'),
-                          const Spacer(),
-                          Flexible(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: technician.isAvailable
-                                    ? Colors.green[50]
-                                    : Colors.red[50],
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                technician.isAvailable
-                                    ? 'Disponible'
-                                    : 'Occupé',
-                                style: TextStyle(
-                                  fontSize: 10,
+                    title: Text(
+                      technician.name,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          technician.specialty,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(Icons.star, color: Colors.amber, size: 16),
+                            const SizedBox(width: 4),
+                            Text('${technician.rating}'),
+                            const Spacer(),
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
                                   color: technician.isAvailable
-                                      ? Colors.green
-                                      : Colors.red,
+                                      ? Colors.green[50]
+                                      : Colors.red[50],
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                                overflow: TextOverflow.ellipsis,
+                                child: Text(
+                                  technician.isAvailable
+                                      ? 'Disponible'
+                                      : 'Occupé',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: technician.isAvailable
+                                        ? Colors.green
+                                        : Colors.red,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
+                    trailing: appointment.assignedTechnicianId == technician.id
+                        ? const Icon(Icons.check_circle, color: Colors.green)
+                        : null,
+                    onTap: () {
+                      selectedTechnician = technician;
+                      Navigator.pop(context);
+                    },
                   ),
-                  trailing: appointment.assignedTechnicianId == technician.id
-                      ? const Icon(Icons.check_circle, color: Colors.green)
-                      : null,
-                  onTap: () {
-                    selectedTechnician = technician;
-                    Navigator.pop(context);
-                  },
                 ),
               );
             },
@@ -525,17 +528,20 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          _progressAppointmentStatus(appointment);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size(double.infinity, 48),
+                      MouseRegion(
+                        cursor: SystemMouseCursors.click, // CURSEUR MAIN AJOUTÉ
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _progressAppointmentStatus(appointment);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(double.infinity, 48),
+                          ),
+                          child: Text(_getNextStatusText(appointment.status)),
                         ),
-                        child: Text(_getNextStatusText(appointment.status)),
                       ),
                     ],
                   ),
@@ -551,22 +557,28 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
           ),
           if (!appointment.hasAssignedTechnician &&
               appointment.status == 'confirmed')
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _assignTechnician(appointment);
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-              child: const Text('Assigner Technicien'),
+            MouseRegion(
+              cursor: SystemMouseCursors.click, // CURSEUR MAIN AJOUTÉ
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _assignTechnician(appointment);
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                child: const Text('Assigner Technicien'),
+              ),
             )
           else if (appointment.hasAssignedTechnician)
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _releaseTechnician(appointment);
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text('Libérer Technicien'),
+            MouseRegion(
+              cursor: SystemMouseCursors.click, // CURSEUR MAIN AJOUTÉ
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _releaseTechnician(appointment);
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Libérer Technicien'),
+              ),
             ),
         ],
       ),
@@ -660,13 +672,16 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
         title: const Text('Gestion des rendez-vous - Garage'),
         backgroundColor: Colors.blue,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              _loadTechnicians();
-              _loadAppointments();
-            },
-            tooltip: 'Actualiser',
+          MouseRegion(
+            cursor: SystemMouseCursors.click, // CURSEUR MAIN AJOUTÉ
+            child: IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () {
+                _loadTechnicians();
+                _loadAppointments();
+              },
+              tooltip: 'Actualiser',
+            ),
           ),
           PopupMenuButton<String>(
             onSelected: (value) {
@@ -824,228 +839,241 @@ class _GarageManagementScreenState extends State<GarageManagementScreen> {
   Widget _buildFilterChip(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
-      child: FilterChip(
-        label: Text(label),
-        selected: _selectedFilter == value,
-        onSelected: (selected) {
-          setState(() {
-            _selectedFilter = value;
-          });
-        },
-        selectedColor: Colors.blue[100],
-        checkmarkColor: Colors.blue,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click, // CURSEUR MAIN AJOUTÉ
+        child: FilterChip(
+          label: Text(label),
+          selected: _selectedFilter == value,
+          onSelected: (selected) {
+            setState(() {
+              _selectedFilter = value;
+            });
+          },
+          selectedColor: Colors.blue[100],
+          checkmarkColor: Colors.blue,
+        ),
       ),
     );
   }
 
   Widget _buildAppointmentCard(Appointment appointment) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      elevation: 2,
-      child: ListTile(
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: _getStatusColor(appointment.status).withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            _getStatusIcon(appointment.status),
-            color: _getStatusColor(appointment.status),
-          ),
-        ),
-        title: Text(
-          appointment.clientName,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              appointment.service,
-              style: const TextStyle(fontWeight: FontWeight.w500),
-              overflow: TextOverflow.ellipsis,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click, // CURSEUR MAIN AJOUTÉ
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        elevation: 2,
+        child: ListTile(
+          leading: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: _getStatusColor(appointment.status).withOpacity(0.1),
+              shape: BoxShape.circle,
             ),
-            Text(
-              appointment.formattedDateTime,
-              overflow: TextOverflow.ellipsis,
+            child: Icon(
+              _getStatusIcon(appointment.status),
+              color: _getStatusColor(appointment.status),
             ),
-            if (appointment.vehicle != null && appointment.vehicle!.isNotEmpty)
+          ),
+          title: Text(
+            appointment.clientName,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Text(
-                'Véhicule: ${appointment.vehicle!}',
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                appointment.service,
+                style: const TextStyle(fontWeight: FontWeight.w500),
                 overflow: TextOverflow.ellipsis,
               ),
-            const SizedBox(height: 4),
-            // Affichage du technicien assigné
-            if (appointment.hasAssignedTechnician)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(8),
+              Text(
+                appointment.formattedDateTime,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (appointment.vehicle != null &&
+                  appointment.vehicle!.isNotEmpty)
+                Text(
+                  'Véhicule: ${appointment.vehicle!}',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.engineering, size: 12, color: Colors.blue),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        appointment.assignedTechnicianName!,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Colors.blue,
-                          fontWeight: FontWeight.bold,
+              const SizedBox(height: 4),
+              // Affichage du technicien assigné
+              if (appointment.hasAssignedTechnician)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.engineering,
+                          size: 12, color: Colors.blue),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          appointment.assignedTechnicianName!,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.blue,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _getStatusColor(appointment.status).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  _getStatusText(appointment.status),
+                  style: TextStyle(
+                    color: _getStatusColor(appointment.status),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              // Bouton de progression rapide
+              if (appointment.canProgress) ...[
+                const SizedBox(height: 8),
+                MouseRegion(
+                  cursor: SystemMouseCursors.click, // CURSEUR MAIN AJOUTÉ
+                  child: SizedBox(
+                    height: 32,
+                    child: ElevatedButton(
+                      onPressed: () => _progressAppointmentStatus(appointment),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        minimumSize: const Size(0, 0),
+                      ),
+                      child: Text(
+                        _getNextStatusText(appointment.status),
+                        style: const TextStyle(fontSize: 12),
+                        textAlign: TextAlign.center,
                       ),
                     ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: _getStatusColor(appointment.status).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                _getStatusText(appointment.status),
-                style: TextStyle(
-                  color: _getStatusColor(appointment.status),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            // Bouton de progression rapide
-            if (appointment.canProgress) ...[
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 32,
-                child: ElevatedButton(
-                  onPressed: () => _progressAppointmentStatus(appointment),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    minimumSize: const Size(0, 0),
-                  ),
-                  child: Text(
-                    _getNextStatusText(appointment.status),
-                    style: const TextStyle(fontSize: 12),
-                    textAlign: TextAlign.center,
                   ),
                 ),
-              ),
+              ],
             ],
-          ],
-        ),
-        trailing: PopupMenuButton<String>(
-          onSelected: (value) {
-            if (value == 'assign_technician') {
-              _assignTechnician(appointment);
-            } else if (value == 'release_technician') {
-              _releaseTechnician(appointment);
-            } else if (value == 'progress_status' && appointment.canProgress) {
-              _progressAppointmentStatus(appointment);
-            } else {
-              _updateAppointmentStatus(appointment, value);
-            }
-          },
-          itemBuilder: (context) {
-            // FILTRER les options selon le statut actuel
-            final menuItems = <PopupMenuEntry<String>>[];
+          ),
+          trailing: PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'assign_technician') {
+                _assignTechnician(appointment);
+              } else if (value == 'release_technician') {
+                _releaseTechnician(appointment);
+              } else if (value == 'progress_status' &&
+                  appointment.canProgress) {
+                _progressAppointmentStatus(appointment);
+              } else {
+                _updateAppointmentStatus(appointment, value);
+              }
+            },
+            itemBuilder: (context) {
+              // FILTRER les options selon le statut actuel
+              final menuItems = <PopupMenuEntry<String>>[];
 
-            // Options de statut de base (uniquement autorisées)
-            if (_isStatusAllowed(appointment.status, 'confirmed')) {
+              // Options de statut de base (uniquement autorisées)
+              if (_isStatusAllowed(appointment.status, 'confirmed')) {
+                menuItems.add(
+                  PopupMenuItem(
+                    value: 'confirmed',
+                    child: Row(
+                      children: [
+                        Icon(Icons.check_circle,
+                            color: _getStatusColor('confirmed')),
+                        const SizedBox(width: 8),
+                        const Text('Confirmer'),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              // Toujours autoriser l'annulation
               menuItems.add(
                 PopupMenuItem(
-                  value: 'confirmed',
+                  value: 'cancelled',
                   child: Row(
                     children: [
-                      Icon(Icons.check_circle,
-                          color: _getStatusColor('confirmed')),
+                      Icon(Icons.cancel, color: _getStatusColor('cancelled')),
                       const SizedBox(width: 8),
-                      const Text('Confirmer'),
+                      const Text('Annuler'),
                     ],
                   ),
                 ),
               );
-            }
 
-            // Toujours autoriser l'annulation
-            menuItems.add(
-              PopupMenuItem(
-                value: 'cancelled',
-                child: Row(
-                  children: [
-                    Icon(Icons.cancel, color: _getStatusColor('cancelled')),
-                    const SizedBox(width: 8),
-                    const Text('Annuler'),
-                  ],
-                ),
-              ),
-            );
-
-            // Option de progression (uniquement si autorisée)
-            if (appointment.canProgress) {
-              menuItems.add(
-                PopupMenuItem(
-                  value: 'progress_status',
-                  child: Row(
-                    children: [
-                      Icon(Icons.arrow_forward,
-                          color: _getStatusColor(appointment.nextStatus)),
-                      const SizedBox(width: 8),
-                      Text('${_getNextStatusText(appointment.status)} →'),
-                    ],
+              // Option de progression (uniquement si autorisée)
+              if (appointment.canProgress) {
+                menuItems.add(
+                  PopupMenuItem(
+                    value: 'progress_status',
+                    child: Row(
+                      children: [
+                        Icon(Icons.arrow_forward,
+                            color: _getStatusColor(appointment.nextStatus)),
+                        const SizedBox(width: 8),
+                        Text('${_getNextStatusText(appointment.status)} →'),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            }
+                );
+              }
 
-            // Gestion des techniciens
-            if (!appointment.hasAssignedTechnician &&
-                appointment.status == 'confirmed') {
-              menuItems.add(const PopupMenuDivider());
-              menuItems.add(
-                const PopupMenuItem(
-                  value: 'assign_technician',
-                  child: Row(
-                    children: [
-                      Icon(Icons.person_add, color: Colors.blue),
-                      SizedBox(width: 8),
-                      Text('Assigner Technicien'),
-                    ],
+              // Gestion des techniciens
+              if (!appointment.hasAssignedTechnician &&
+                  appointment.status == 'confirmed') {
+                menuItems.add(const PopupMenuDivider());
+                menuItems.add(
+                  const PopupMenuItem(
+                    value: 'assign_technician',
+                    child: Row(
+                      children: [
+                        Icon(Icons.person_add, color: Colors.blue),
+                        SizedBox(width: 8),
+                        Text('Assigner Technicien'),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            } else if (appointment.hasAssignedTechnician) {
-              menuItems.add(const PopupMenuDivider());
-              menuItems.add(
-                const PopupMenuItem(
-                  value: 'release_technician',
-                  child: Row(
-                    children: [
-                      Icon(Icons.person_remove, color: Colors.red),
-                      SizedBox(width: 8),
-                      Text('Libérer Technicien'),
-                    ],
+                );
+              } else if (appointment.hasAssignedTechnician) {
+                menuItems.add(const PopupMenuDivider());
+                menuItems.add(
+                  const PopupMenuItem(
+                    value: 'release_technician',
+                    child: Row(
+                      children: [
+                        Icon(Icons.person_remove, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('Libérer Technicien'),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            }
+                );
+              }
 
-            return menuItems;
-          },
+              return menuItems;
+            },
+          ),
+          onTap: () => _showAppointmentDetails(appointment),
         ),
-        onTap: () => _showAppointmentDetails(appointment),
       ),
     );
   }

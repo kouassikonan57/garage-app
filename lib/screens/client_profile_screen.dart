@@ -190,10 +190,13 @@ class _ClientProfileScreenState extends State<ClientProfileScreen> {
               child: CircularProgressIndicator(color: Colors.white),
             )
           else
-            IconButton(
-              icon: const Icon(Icons.save),
-              onPressed: _isSaving ? null : _saveProfile,
-              tooltip: 'Sauvegarder',
+            MouseRegion(
+              cursor: SystemMouseCursors.click, // CURSEUR MAIN AJOUTÉ
+              child: IconButton(
+                icon: const Icon(Icons.save),
+                onPressed: _isSaving ? null : _saveProfile,
+                tooltip: 'Sauvegarder',
+              ),
             ),
         ],
       ),
@@ -242,19 +245,23 @@ class _ClientProfileScreenState extends State<ClientProfileScreen> {
           const SizedBox(height: 30),
           _isSaving
               ? const Center(child: CircularProgressIndicator())
-              : SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                    ),
-                    onPressed: _saveProfile,
-                    child: Text(
-                      _isNewClient
-                          ? 'CRÉER MON PROFIL'
-                          : 'SAUVEGARDER LES MODIFICATIONS',
-                      style: const TextStyle(fontSize: 16, color: Colors.white),
+              : MouseRegion(
+                  cursor: SystemMouseCursors.click, // CURSEUR MAIN AJOUTÉ
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                      ),
+                      onPressed: _saveProfile,
+                      child: Text(
+                        _isNewClient
+                            ? 'CRÉER MON PROFIL'
+                            : 'SAUVEGARDER LES MODIFICATIONS',
+                        style:
+                            const TextStyle(fontSize: 16, color: Colors.white),
+                      ),
                     ),
                   ),
                 ),
