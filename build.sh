@@ -32,3 +32,6 @@ else
     echo "❌ Échec du build"
     exit 1
 fi
+
+# Dans votre build.sh, ajoutez un paramètre de version
+echo "const CACHE_VERSION = '$(date +%s)';" > build/web/version.js
